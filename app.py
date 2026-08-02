@@ -240,7 +240,37 @@ if scelta_menu == "SCHEDULE":
         {"WEEK": "WEEK 7", "DATE": "AUG 29", "TIME": "3PM", "MATCHUPS": "POTR • ARES • SV • Mafia"},
     ]
 
-    df_schedule = pd.DataFrame(schedule_data)
+    from datetime import datetime, timezone, timedelta
+
+    # Data corrente fissa o dinamica basata sul contesto (2 agosto 2026)
+    oggi = datetime(2026, 8, 2, tzinfo=timezone(timedelta(hours=2)))
+
+    schedule_rows = []
+    for item in schedule_data:
+        # Parsing della data (es. "JUL 18" -> anno 2026)
+        date_str = f"{item['DATE']} 2026"
+        match_date = datetime.strptime(date_str, "%b %d %Y").replace(tzinfo=timezone(timedelta(hours=2)))
+        
+        week_val = item["WEEK"]
+        date_val = item["DATE"]
+        time_val = item["TIME"]
+        matchups_val = item["MATCHUPS"]
+
+        # Se la data della partita è precedente a oggi, barra i valori
+        if match_date < oggi:
+            week_val = f"~~{week_val}~~"
+            date_val = f"~~{date_val}~~"
+            time_val = f"~~{time_val}~~"
+            matchups_val = f"~~{matchups_val}~~"
+
+        schedule_rows.append({
+            "WEEK": week_val,
+            "DATE": date_val,
+            "TIME": time_val,
+            "MATCHUPS": matchups_val
+        })
+
+    df_schedule = pd.DataFrame(schedule_rows)
     st.dataframe(df_schedule, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
