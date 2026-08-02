@@ -6,12 +6,12 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 
-# Configurazione della pagina
+# --- CONFIGURAZIONE DELLA PAGINA ---
 st.set_page_config(
     page_title="Clans Leagues Session 7", page_icon="🛡️", layout="centered"
 )
 
-# Stile grafico ottimizzato per mobile e contenitori
+# --- STILE GRAFICO OTTIMIZZATO ---
 st.markdown(
     """
     <style>
@@ -61,7 +61,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Header con titolo, sottotitolo EU ELITE e icone ai lati
+# --- HEADER ---
 col_logo1, col_title, col_logo2 = st.columns([1, 3, 1])
 with col_logo1:
     st.markdown("<h1 style='text-align: center; margin: 0;'>🛡️</h1>", unsafe_allow_html=True)
@@ -76,7 +76,7 @@ with col_logo2:
 
 st.markdown("---")
 
-# Menu di navigazione a sinistra (Sidebar)
+# --- MENU DI NAVIGAZIONE (SIDEBAR) ---
 st.sidebar.title("🧭 Navigation")
 scelta_menu = st.sidebar.radio(
     "Select Section",
@@ -89,7 +89,7 @@ scelta_menu = st.sidebar.radio(
     ],
 )
 
-# Configurazione Google Sheet e GID specifici per tab
+# --- VARIABILI GLOBALI E GID ---
 SHEET_ID = "1rDMEgmeHJlO0sBz-U4szt_vGAfgBbu1wDfv3yAlyCUU"
 GID_LEADERBOARD = 316677537
 GID_TEAM_RESULT = 547827980
@@ -171,7 +171,9 @@ def get_df_by_gid(target_gid):
     
     return pd.read_excel(xls_data, sheet_name=0, header=None)
 
+# ==========================================
 # --- SEZIONE: SCHEDULE ---
+# ==========================================
 if scelta_menu == "SCHEDULE":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📅 Schedule — EU ELITE\n<p style='color: #888; font-size: 0.9rem;'>All times EST</p>", unsafe_allow_html=True)
@@ -190,7 +192,9 @@ if scelta_menu == "SCHEDULE":
     st.dataframe(df_schedule, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
+# ==========================================
 # --- SEZIONE: LEADERBOARD ---
+# ==========================================
 elif scelta_menu == "LEADERBOARD":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 🏆 Leaderboard & Match Results - EU ELITE")
@@ -228,7 +232,9 @@ elif scelta_menu == "LEADERBOARD":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+# ==========================================
 # --- SEZIONE: SYSTEM SCORE ---
+# ==========================================
 elif scelta_menu == "SYSTEM SCORE":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### ⚙️ System Score")
@@ -243,17 +249,36 @@ elif scelta_menu == "SYSTEM SCORE":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- SEZIONE: TEAM RESULT (Lettura sicura con controllo limiti) ---
+# ==========================================
+# --- SEZIONE: TEAM RESULT (LETTURA DIRETTA E SICURA API) ---
+# ==========================================
 elif scelta_menu == "TEAM RESULT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📊 Team Result")
 
-    df_team = get_df_by_gid(GID_TEAM_RESULT)
+    ws_team = None
+    all_data = []
+    
+    # 1. Connessione diretta via Gspread alla tab
+    try:
+        creds = ottieni_credenziali()
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(SHEET_ID)
+        ws_team = next((ws for ws in sheet.worksheets() if str(ws.id) == str(GID_TEAM_RESULT)), None)
+        
+        if ws_team:
+            st.info(f"DEBUG: Collegato correttamente alla tab **{ws_team.title}** (GID: {GID_TEAM_RESULT})")
+            all_data = ws_team.get_all_values()  # Scarica tutti i dati in un colpo solo per massima velocità
+        else:
+            st.error(f"Nessuna scheda trovata con GID {GID_TEAM_RESULT}")
+    except Exception as e:
+        st.error(f"Errore connessione API: {e}")
 
-    if df_team is not None:
+    # 2. Elaborazione dei dati estratti
+    if ws_team is not None and all_data:
         giornate_team_config = [
-            ("Day 1 - 18/07/2026", 9),
-            ("Day 2 - 25/07/2026", 18),
+            ("Day 1 - 18/07/2026", 9),   # Riga 10 su Sheets -> Indice 9 in Python
+            ("Day 2 - 25/07/2026", 18),  # Riga 19 -> Indice 18
             ("Day 3 - 01/08/2026", 27),
             ("Day 4 - 08/08/2026", 36),
             ("Day 5 - 15/08/2026", 45),
@@ -261,86 +286,78 @@ elif scelta_menu == "TEAM RESULT":
             ("Day 7 - 29/08/2026", 63),
         ]
 
-        col_team_idx = 4   # Colonna E
-        col_g1_idx = 9     # Colonna J
-        col_g2_idx = 19    # Colonna T
-        col_g3_idx = 24    # Colonna Y
-        col_g4_idx = 29    # Colonna AD
-        col_g5_idx = 35    # Colonna AJ
-        col_tot_idx = 39   # Colonna AN
+        # Colonne (Indici Python basati su 0):
+        # E=4, J=9, T=19, Y=24, AD=29, AJ=35, AN=39
+        c_team = 4
+        c_g1 = 9
+        c_g2 = 19
+        c_g3 = 24
+        c_g4 = 29
+        c_g5 = 35
+        c_tot = 39
 
-        max_rows = len(df_team)
-        max_cols = len(df_team.columns)
-
-        for nome_giornata, start_row in giornate_team_config:
+        for nome_giornata, start_idx in giornate_team_config:
             with st.container():
                 st.markdown(f"<div class='day-box'>", unsafe_allow_html=True)
                 st.markdown(f"<div class='day-title'>{nome_giornata}</div>", unsafe_allow_html=True)
 
-                end_row = start_row + 3  
+                teams, g1, g2, g3, g4, g5, totals = [], [], [], [], [], [], []
+
+                for row_idx in range(start_idx, start_idx + 4):
+                    # Se la riga esiste nel foglio estratto
+                    if row_idx < len(all_data):
+                        row_data = all_data[row_idx]
+                        
+                        # Funzione sicura per prelevare il valore di una colonna
+                        def get_val(col_idx, default="0"):
+                            return row_data[col_idx] if col_idx < len(row_data) and row_data[col_idx].strip() != "" else default
+
+                        teams.append(get_val(c_team, ""))
+                        g1.append(get_val(c_g1, "0"))
+                        g2.append(get_val(c_g2, "0"))
+                        g3.append(get_val(c_g3, "0"))
+                        g4.append(get_val(c_g4, "0"))
+                        g5.append(get_val(c_g5, "0"))
+                        totals.append(get_val(c_tot, "0"))
+                    else:
+                        # Se il foglio finisce prima
+                        teams.append("")
+                        g1.append("0")
+                        g2.append("0")
+                        g3.append("0")
+                        g4.append("0")
+                        g5.append("0")
+                        totals.append("0")
+
+                df_giornata = pd.DataFrame({
+                    "Team": teams,
+                    "Game 1": g1,
+                    "Game 2": g2,
+                    "Game 3": g3,
+                    "Game 4": g4,
+                    "Game 5": g5,
+                    "Total": totals
+                })
                 
-                # Controllo di sicurezza per evitare errori out-of-bounds se il foglio è corto
-                if start_row >= max_rows:
-                    df_giornata = pd.DataFrame({
-                        "Team": ["", "", "", ""],
-                        "Game 1": [0, 0, 0, 0],
-                        "Game 2": [0, 0, 0, 0],
-                        "Game 3": [0, 0, 0, 0],
-                        "Game 4": [0, 0, 0, 0],
-                        "Game 5": [0, 0, 0, 0],
-                        "Total": [0, 0, 0, 0],
-                        "Podio / Posizionamento": ["1° Place", "2° Place", "3° Place", "4° Place"]
-                    })
-                else:
-                    actual_end = min(end_row, max_rows - 1)
-                    
-                    def safe_get(c_idx, default_val):
-                        if c_idx < max_cols:
-                            vals = df_team.iloc[start_row:actual_end+1, c_idx].fillna(default_val).tolist()
-                            while len(vals) < 4:
-                                vals.append(default_val)
-                            return vals
-                        return [default_val] * 4
+                df_giornata["NumericTotal"] = pd.to_numeric(df_giornata["Total"], errors="coerce").fillna(0)
+                df_sorted = df_giornata.sort_values(by="NumericTotal", ascending=False).reset_index(drop=True)
 
-                    teams = safe_get(col_team_idx, "")
-                    teams = [str(t) for t in teams]
-                    g1 = safe_get(col_g1_idx, 0)
-                    g2 = safe_get(col_g2_idx, 0)
-                    g3 = safe_get(col_g3_idx, 0)
-                    g4 = safe_get(col_g4_idx, 0)
-                    g5 = safe_get(col_g5_idx, 0)
-                    totals = safe_get(col_tot_idx, 0)
+                podio_labels = ["1° Place", "2° Place", "3° Place", "4° Place"]
+                podio_col = [f"{podio_labels[i]}: {row['Team']} ({row['NumericTotal']} pts)" for i, row in df_sorted.iterrows()]
 
-                    df_giornata = pd.DataFrame({
-                        "Team": teams,
-                        "Game 1": g1,
-                        "Game 2": g2,
-                        "Game 3": g3,
-                        "Game 4": g4,
-                        "Game 5": g5,
-                        "Total": totals
-                    })
-                    
-                    df_giornata["NumericTotal"] = pd.to_numeric(df_giornata["Total"], errors="coerce").fillna(0)
-                    df_sorted = df_giornata.sort_values(by="NumericTotal", ascending=False).reset_index(drop=True)
-
-                    podio_labels = ["1° Place", "2° Place", "3° Place", "4° Place"]
-                    podio_col = []
-                    for i, row in df_sorted.iterrows():
-                        pos_str = podio_labels[i] if i < len(podio_labels) else f"{i+1}° Place"
-                        podio_col.append(f"{pos_str}: {row['Team']} ({row['NumericTotal']} pts)")
-
-                    df_giornata["Podio / Posizionamento"] = pd.Series(podio_col)
-                    df_giornata = df_giornata.drop(columns=["NumericTotal"])
+                df_giornata["Podio / Posizionamento"] = pd.Series(podio_col)
+                df_giornata = df_giornata.drop(columns=["NumericTotal"])
 
                 st.dataframe(df_giornata, use_container_width=True, hide_index=True)
                 st.markdown("</div>", unsafe_allow_html=True)
-    else:
+    elif ws_team is None:
         st.error("Impossibile caricare i dati della tab Team Result.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+# ==========================================
 # --- SEZIONE: PERSONAL STATS ---
+# ==========================================
 elif scelta_menu == "PERSONAL STATS":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 👤 Personal Stats Dashboard")
