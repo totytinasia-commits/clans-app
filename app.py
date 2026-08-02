@@ -250,7 +250,7 @@ elif scelta_menu == "SYSTEM SCORE":
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# --- SEZIONE: TEAM RESULT (LETTURA DIRETTA E SICURA API) ---
+# --- SEZIONE: TEAM RESULT (CON DEBUG AVANZATO) ---
 # ==========================================
 elif scelta_menu == "TEAM RESULT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
@@ -259,25 +259,29 @@ elif scelta_menu == "TEAM RESULT":
     ws_team = None
     all_data = []
     
-    # 1. Connessione diretta via Gspread alla tab
     try:
         creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
-        ws_team = next((ws for ws in sheet.worksheets() if str(ws.id) == str(GID_TEAM_RESULT)), None)
+        
+        # DEBUG: Mostra tutte le schede disponibili nel file per verificare il GID corretto
+        tutte_le_tab = sheet.worksheets()
+        info_tab = [f"'{ws.title}' (GID: {ws.id})" for ws in tutte_le_tab]
+        st.info("🔍 **Tab rilevate nel Google Sheet:** " + " | ".join(info_tab))
+
+        # Ricerca per GID
+        ws_team = next((ws for ws in tutte_le_tab if str(ws.id) == str(GID_TEAM_RESULT)), None)
         
         if ws_team:
-            st.info(f"DEBUG: Collegato correttamente alla tab **{ws_team.title}** (GID: {GID_TEAM_RESULT})")
-            all_data = ws_team.get_all_values()  # Scarica tutti i dati in un colpo solo per massima velocità
+            all_data = ws_team.get_all_values()
         else:
-            st.error(f"Nessuna scheda trovata con GID {GID_TEAM_RESULT}")
+            st.error(f"ATTENZIONE: Nessuna scheda corrisponde al GID {GID_TEAM_RESULT}! Controlla l'elenco sopra.")
     except Exception as e:
         st.error(f"Errore connessione API: {e}")
 
-    # 2. Elaborazione dei dati estratti
     if ws_team is not None and all_data:
         giornate_team_config = [
-            ("Day 1 - 18/07/2026", 9),   # Riga 10 su Sheets -> Indice 9 in Python
+            ("Day 1 - 18/07/2026", 9),   # Riga 10 su Sheets -> Indice 9
             ("Day 2 - 25/07/2026", 18),  # Riga 19 -> Indice 18
             ("Day 3 - 01/08/2026", 27),
             ("Day 4 - 08/08/2026", 36),
@@ -286,15 +290,8 @@ elif scelta_menu == "TEAM RESULT":
             ("Day 7 - 29/08/2026", 63),
         ]
 
-        # Colonne (Indici Python basati su 0):
-        # E=4, J=9, T=19, Y=24, AD=29, AJ=35, AN=39
-        c_team = 4
-        c_g1 = 9
-        c_g2 = 19
-        c_g3 = 24
-        c_g4 = 29
-        c_g5 = 35
-        c_tot = 39
+        # Colonne (Indici Python basati su 0): E=4, J=9, T=19, Y=24, AD=29, AJ=35, AN=39
+        c_team, c_g1, c_g2, c_g3, c_g4, c_g5, c_tot = 4, 9, 19, 24, 29, 35, 39
 
         for nome_giornata, start_idx in giornate_team_config:
             with st.container():
@@ -304,13 +301,11 @@ elif scelta_menu == "TEAM RESULT":
                 teams, g1, g2, g3, g4, g5, totals = [], [], [], [], [], [], []
 
                 for row_idx in range(start_idx, start_idx + 4):
-                    # Se la riga esiste nel foglio estratto
                     if row_idx < len(all_data):
                         row_data = all_data[row_idx]
                         
-                        # Funzione sicura per prelevare il valore di una colonna
                         def get_val(col_idx, default="0"):
-                            return row_data[col_idx] if col_idx < len(row_data) and row_data[col_idx].strip() != "" else default
+                            return row_data[col_idx] if col_idx < len(row_data) and str(row_data[col_idx]).strip() != "" else default
 
                         teams.append(get_val(c_team, ""))
                         g1.append(get_val(c_g1, "0"))
@@ -320,14 +315,8 @@ elif scelta_menu == "TEAM RESULT":
                         g5.append(get_val(c_g5, "0"))
                         totals.append(get_val(c_tot, "0"))
                     else:
-                        # Se il foglio finisce prima
                         teams.append("")
-                        g1.append("0")
-                        g2.append("0")
-                        g3.append("0")
-                        g4.append("0")
-                        g5.append("0")
-                        totals.append("0")
+                        for lst in [g1, g2, g3, g4, g5, totals]: lst.append("0")
 
                 df_giornata = pd.DataFrame({
                     "Team": teams,
