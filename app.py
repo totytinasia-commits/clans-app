@@ -6,9 +6,12 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 
+
 # --- CONFIGURAZIONE DELLA PAGINA ---
 st.set_page_config(
-    page_title="Clans Leagues Session 7", page_icon="🛡️", layout="centered"
+    page_title="Clans Leagues Session 7", 
+    page_icon="logo.png",  # <-- Inserisci qui il nome del file PNG caricato su GitHub
+    layout="centered"
 )
 
 # --- STILE GRAFICO OTTIMIZZATO ---
