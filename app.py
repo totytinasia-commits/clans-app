@@ -244,26 +244,28 @@ if scelta_menu == "SCHEDULE":
 
     oggi = datetime(2026, 8, 2, tzinfo=timezone(timedelta(hours=2)))
 
-    schedule_rows = []
+    is_past_list = []
+    cleaned_rows = []
+    
     for item in schedule_data:
         date_str = f"{item['DATE']} 2026"
         match_date = datetime.strptime(date_str, "%b %d %Y").replace(tzinfo=timezone(timedelta(hours=2)))
         
-        schedule_rows.append({
+        is_past_list.append(match_date < oggi)
+        cleaned_rows.append({
             "WEEK": item["WEEK"],
             "DATE": item["DATE"],
             "TIME": item["TIME"],
-            "MATCHUPS": item["MATCHUPS"],
-            "_MATCH_DATE": match_date
+            "MATCHUPS": item["MATCHUPS"]
         })
 
-    df_schedule = pd.DataFrame(schedule_rows)
+    df_schedule = pd.DataFrame(cleaned_rows)
 
     def color_past_rows(row):
-        is_past = row["_MATCH_DATE"] < oggi
+        is_past = is_past_list[row.name]
         return ['color: #ff4b4b' if is_past else '' for _ in row.index]
 
-    df_styled = df_schedule.style.apply(color_past_rows, axis=1).hide(subset=["_MATCH_DATE"], axis=1)
+    df_styled = df_schedule.style.apply(color_past_rows, axis=1)
 
     st.dataframe(df_styled, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
