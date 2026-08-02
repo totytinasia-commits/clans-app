@@ -250,36 +250,15 @@ elif scelta_menu == "SYSTEM SCORE":
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# --- SEZIONE: TEAM RESULT (CON DEBUG AVANZATO) ---
+# --- SEZIONE: TEAM RESULT ---
 # ==========================================
 elif scelta_menu == "TEAM RESULT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📊 Team Result")
 
-    ws_team = None
-    all_data = []
-    
-    try:
-        creds = ottieni_credenziali()
-        client = gspread.authorize(creds)
-        sheet = client.open_by_key(SHEET_ID)
-        
-        # DEBUG: Mostra tutte le schede disponibili nel file per verificare il GID corretto
-        tutte_le_tab = sheet.worksheets()
-        info_tab = [f"'{ws.title}' (GID: {ws.id})" for ws in tutte_le_tab]
-        st.info("🔍 **Tab rilevate nel Google Sheet:** " + " | ".join(info_tab))
+    df_team_result = get_df_by_gid(GID_TEAM_RESULT)
 
-        # Ricerca per GID
-        ws_team = next((ws for ws in tutte_le_tab if str(ws.id) == str(GID_TEAM_RESULT)), None)
-        
-        if ws_team:
-            all_data = ws_team.get_all_values()
-        else:
-            st.error(f"ATTENZIONE: Nessuna scheda corrisponde al GID {GID_TEAM_RESULT}! Controlla l'elenco sopra.")
-    except Exception as e:
-        st.error(f"Errore connessione API: {e}")
-
-    if ws_team is not None and all_data:
+    if df_team_result is not None:
         giornate_team_config = [
             ("Day 1 - 18/07/2026", 9),   # Riga 10 su Sheets -> Indice 9
             ("Day 2 - 25/07/2026", 18),  # Riga 19 -> Indice 18
@@ -301,19 +280,21 @@ elif scelta_menu == "TEAM RESULT":
                 teams, g1, g2, g3, g4, g5, totals = [], [], [], [], [], [], []
 
                 for row_idx in range(start_idx, start_idx + 4):
-                    if row_idx < len(all_data):
-                        row_data = all_data[row_idx]
-                        
-                        def get_val(col_idx, default="0"):
-                            return row_data[col_idx] if col_idx < len(row_data) and str(row_data[col_idx]).strip() != "" else default
+                    if row_idx < len(df_team_result):
+                        def get_safe_val(r, c, default="0"):
+                            try:
+                                val = df_team_result.iloc[r, c]
+                                return str(val).strip() if pd.notna(val) and str(val).strip() != "" else default
+                            except Exception:
+                                return default
 
-                        teams.append(get_val(c_team, ""))
-                        g1.append(get_val(c_g1, "0"))
-                        g2.append(get_val(c_g2, "0"))
-                        g3.append(get_val(c_g3, "0"))
-                        g4.append(get_val(c_g4, "0"))
-                        g5.append(get_val(c_g5, "0"))
-                        totals.append(get_val(c_tot, "0"))
+                        teams.append(get_safe_val(row_idx, c_team, ""))
+                        g1.append(get_safe_val(row_idx, c_g1, "0"))
+                        g2.append(get_safe_val(row_idx, c_g2, "0"))
+                        g3.append(get_safe_val(row_idx, c_g3, "0"))
+                        g4.append(get_safe_val(row_idx, c_g4, "0"))
+                        g5.append(get_safe_val(row_idx, c_g5, "0"))
+                        totals.append(get_safe_val(row_idx, c_tot, "0"))
                     else:
                         teams.append("")
                         for lst in [g1, g2, g3, g4, g5, totals]: lst.append("0")
@@ -339,8 +320,8 @@ elif scelta_menu == "TEAM RESULT":
 
                 st.dataframe(df_giornata, use_container_width=True, hide_index=True)
                 st.markdown("</div>", unsafe_allow_html=True)
-    elif ws_team is None:
-        st.error("Impossibile caricare i dati della tab Team Result.")
+    else:
+        st.error("Unable to read Team Result tab.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
