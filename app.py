@@ -6,12 +6,12 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 
-# Configurazione della pagina
+# --- CONFIGURAZIONE DELLA PAGINA ---
 st.set_page_config(
     page_title="Clans Leagues Session 7", page_icon="🛡️", layout="centered"
 )
 
-# Stile grafico ottimizzato per mobile e contenitori
+# --- STILE GRAFICO OTTIMIZZATO ---
 st.markdown(
     """
     <style>
@@ -61,7 +61,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Header con titolo, sottotitolo EU ELITE e icone ai lati
+# --- HEADER ---
 col_logo1, col_title, col_logo2 = st.columns([1, 3, 1])
 with col_logo1:
     st.markdown("<h1 style='text-align: center; margin: 0;'>🛡️</h1>", unsafe_allow_html=True)
@@ -76,7 +76,7 @@ with col_logo2:
 
 st.markdown("---")
 
-# Menu di navigazione a sinistra (Sidebar)
+# --- MENU DI NAVIGAZIONE (SIDEBAR) ---
 st.sidebar.title("🧭 Navigation")
 scelta_menu = st.sidebar.radio(
     "Select Section",
@@ -89,7 +89,7 @@ scelta_menu = st.sidebar.radio(
     ],
 )
 
-# Configurazione Google Sheet e GID specifici per tab
+# --- VARIABILI GLOBALI E GID ---
 SHEET_ID = "1rDMEgmeHJlO0sBz-U4szt_vGAfgBbu1wDfv3yAlyCUU"
 GID_LEADERBOARD = 316677537
 GID_TEAM_RESULT = 547827980
@@ -97,7 +97,7 @@ GID_PERSONAL_STATS = 1111383455
 
 url_export = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
-# --- CONFIGURAZIONE GOOGLE SHEETS API & CREDENZIALI ibride (Cloud / Locale) ---
+# --- CONFIGURAZIONE GOOGLE SHEETS API & CREDENZIALI ---
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
@@ -107,6 +107,8 @@ def ottieni_credenziali():
     try:
         if "gcp_service_account" in st.secrets:
             creds_dict = dict(st.secrets["gcp_service_account"])
+            if "private_key" in creds_dict:
+                creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
             return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     except Exception:
         pass
@@ -121,7 +123,7 @@ def scrivi_cella_per_gid(target_gid, cella, valore):
         
         worksheet = None
         for ws in sheet.worksheets():
-            if str(ws.id) == str(target_gid):
+            if str(ws.id).strip() == str(target_gid).strip():
                 worksheet = ws
                 break
         
@@ -152,7 +154,7 @@ def carica_google_sheet_completo(url):
 xls_data = carica_google_sheet_completo(url_export)
 
 def get_df_by_gid(target_gid):
-    if target_gid == GID_TEAM_RESULT:
+    if str(target_gid).strip() == str(GID_TEAM_RESULT).strip():
         try:
             creds = ottieni_credenziali()
             client = gspread.authorize(creds)
@@ -160,7 +162,7 @@ def get_df_by_gid(target_gid):
             
             target_ws = None
             for ws in sheet.worksheets():
-                if str(ws.id) == str(target_gid):
+                if str(ws.id).strip() == str(target_gid).strip():
                     target_ws = ws
                     break
             
@@ -180,7 +182,7 @@ def get_df_by_gid(target_gid):
         
         target_title = None
         for ws in sheet.worksheets():
-            if str(ws.id) == str(target_gid):
+            if str(ws.id).strip() == str(target_gid).strip():
                 target_title = ws.title
                 break
         
@@ -191,7 +193,9 @@ def get_df_by_gid(target_gid):
     
     return pd.read_excel(xls_data, sheet_name=0, header=None)
 
+# ==========================================
 # --- SEZIONE: SCHEDULE ---
+# ==========================================
 if scelta_menu == "SCHEDULE":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📅 Schedule — EU ELITE\n<p style='color: #888; font-size: 0.9rem;'>All times EST</p>", unsafe_allow_html=True)
@@ -210,7 +214,9 @@ if scelta_menu == "SCHEDULE":
     st.dataframe(df_schedule, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
+# ==========================================
 # --- SEZIONE: LEADERBOARD ---
+# ==========================================
 elif scelta_menu == "LEADERBOARD":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 🏆 Leaderboard & Match Results - EU ELITE")
@@ -248,7 +254,9 @@ elif scelta_menu == "LEADERBOARD":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+# ==========================================
 # --- SEZIONE: SYSTEM SCORE ---
+# ==========================================
 elif scelta_menu == "SYSTEM SCORE":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### ⚙️ System Score")
@@ -263,7 +271,9 @@ elif scelta_menu == "SYSTEM SCORE":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+# ==========================================
 # --- SEZIONE: TEAM RESULT ---
+# ==========================================
 elif scelta_menu == "TEAM RESULT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📊 Team Result")
@@ -283,7 +293,7 @@ elif scelta_menu == "TEAM RESULT":
 
         col_team = 4
         match_cols = [9, 14, 19, 24, 29]
-        col_total = 30
+        col_total = 33
 
         for nome_giornata, r_start, r_end in giornate_team_config:
             with st.container():
@@ -330,7 +340,9 @@ elif scelta_menu == "TEAM RESULT":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+# ==========================================
 # --- SEZIONE: PERSONAL STATS ---
+# ==========================================
 elif scelta_menu == "PERSONAL STATS":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 👤 Personal Stats Dashboard")
@@ -346,8 +358,6 @@ elif scelta_menu == "PERSONAL STATS":
         "Round 7": 7,
     }
     
-    inv_rounds_config = {str(v): k for k, v in rounds_config.items()}
-
     col1, col2 = st.columns(2)
 
     target_ws = None
@@ -358,7 +368,7 @@ elif scelta_menu == "PERSONAL STATS":
         creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
-        target_ws = next((ws for ws in sheet.worksheets() if str(ws.id) == str(GID_PERSONAL_STATS)), None)
+        target_ws = next((ws for ws in sheet.worksheets() if str(ws.id).strip() == str(GID_PERSONAL_STATS).strip()), None)
         
         if target_ws:
             d9_raw = target_ws.acell("D9").value
