@@ -104,12 +104,17 @@ SCOPES = [
 ]
 
 def ottieni_credenziali():
-    # Convertiamo i secrets in un dizionario standard ed eliminiamo eventuali problemi di formattazione della chiave
     creds_dict = dict(st.secrets["gcp_service_account"])
     
-    # Assicuriamoci che i newline siano corretti nella private_key
+    # Pulisce e formatta correttamente la chiave privata
     if "private_key" in creds_dict:
-        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+        pk = creds_dict["private_key"]
+        # Rimuove eventuali spazi bianchi superflui e sistema i newline
+        pk = pk.strip()
+        if not pk.startswith("-----BEGIN PRIVATE KEY-----"):
+            # Se per caso manca l'header o è formattato male
+            pass
+        creds_dict["private_key"] = pk.replace("\\n", "\n")
         
     return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
 
