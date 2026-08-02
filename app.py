@@ -95,8 +95,6 @@ GID_LEADERBOARD = 316677537
 GID_TEAM_RESULT = 547827980
 GID_PERSONAL_STATS = 1111383455
 
-url_export = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
-
 # --- CONFIGURAZIONE GOOGLE SHEETS API & CREDENZIALI ---
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -134,42 +132,29 @@ def scrivi_cella_per_gid(target_gid, cella, valore):
         return False
 
 @st.cache_data(ttl=10)
-def scarica_bytes_sheet(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.content
-
-def carica_google_sheet_completo(url):
-    try:
-        content_bytes = scarica_bytes_sheet(url)
-        xls = pd.ExcelFile(io.BytesIO(content_bytes))
-        return xls
-    except Exception as e:
-        st.error(f"Errore di caricamento del Google Sheet: {e}")
-        return None
-
-xls_data = carica_google_sheet_completo(url_export)
-
 def get_df_by_gid(target_gid):
-    if xls_data is None:
-        return None
+    """
+    Legge direttamente i dati dal Google Sheet tramite gspread e GID, 
+    garantendo che non si dipenda dalla posizione o dall'ordine delle schede.
+    """
     try:
         creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
         
-        target_title = None
+        worksheet = None
         for ws in sheet.worksheets():
             if str(ws.id) == str(target_gid):
-                target_title = ws.title
+                worksheet = ws
                 break
         
-        if target_title and target_title in xls_data.sheet_names:
-            return pd.read_excel(xls_data, sheet_name=target_title, header=None)
-    except Exception:
-        pass
+        if worksheet:
+            data = worksheet.get_all_values()
+            return pd.DataFrame(data)
+    except Exception as e:
+        st.error(f"Errore di lettura del GID {target_gid}: {e}")
     
-    return pd.read_excel(xls_data, sheet_name=0, header=None)
+    return None
 
 # ==========================================
 # --- SEZIONE: SCHEDULE ---
