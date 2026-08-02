@@ -255,10 +255,10 @@ if scelta_menu == "SCHEDULE":
         matchups_val = item["MATCHUPS"]
 
         if match_date < oggi:
-            week_val = f":red[~~{week_val}~~]"
-            date_val = f":red[~~{date_val}~~]"
-            time_val = f":red[~~{time_val}~~]"
-            matchups_val = f":red[~~{matchups_val}~~]"
+            week_val = f"~~{week_val}~~"
+            date_val = f"~~{date_val}~~"
+            time_val = f"~~{time_val}~~"
+            matchups_val = f"~~{matchups_val}~~"
 
         schedule_rows.append({
             "WEEK": week_val,
@@ -268,7 +268,15 @@ if scelta_menu == "SCHEDULE":
         })
 
     df_schedule = pd.DataFrame(schedule_rows)
-    st.dataframe(df_schedule, use_container_width=True, hide_index=True)
+
+    def color_past_rows(row):
+        # Controlla se la riga è barrata (quindi passata)
+        is_past = any(str(val).startswith("~~") for val in row)
+        return ['color: #ff4b4b' if is_past else '' for _ in row]
+
+    df_styled = df_schedule.style.apply(color_past_rows, axis=1)
+
+    st.dataframe(df_styled, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
