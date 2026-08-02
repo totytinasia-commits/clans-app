@@ -269,8 +269,9 @@ elif scelta_menu == "TEAM RESULT":
             ("Day 7 - 29/08/2026", 63),
         ]
 
-        # Colonne (Indici Python basati su 0): E=4, J=9, T=19, Y=24, AD=29, AJ=35, AN=39
-        c_team, c_g1, c_g2, c_g3, c_g4, c_g5, c_tot = 4, 9, 19, 24, 29, 35, 39
+        # Colonne aggiornate (Indici Python 0-based basati su J, O, T, Y, AD):
+        # Team = E (4), Game 1 = J (9), Game 2 = O (14), Game 3 = T (19), Game 4 = Y (24), Game 5 = AD (29), Total = AH (33)
+        c_team, c_g1, c_g2, c_g3, c_g4, c_g5, c_tot = 4, 9, 14, 19, 24, 29, 33
 
         for nome_giornata, start_idx in giornate_team_config:
             with st.container():
