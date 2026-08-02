@@ -243,7 +243,7 @@ elif scelta_menu == "SYSTEM SCORE":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- SEZIONE: TEAM RESULT (Lettura sicura tramite GID -> Nome tab -> Excel export) ---
+# --- SEZIONE: TEAM RESULT (Lettura sicura con controllo limiti) ---
 elif scelta_menu == "TEAM RESULT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📊 Team Result")
@@ -251,7 +251,6 @@ elif scelta_menu == "TEAM RESULT":
     df_team = get_df_by_gid(GID_TEAM_RESULT)
 
     if df_team is not None:
-        # Configurazione delle righe di inizio (indice Python, partendo da 0. Riga 10 di Excel = indice 9)
         giornate_team_config = [
             ("Day 1 - 18/07/2026", 9),
             ("Day 2 - 25/07/2026", 18),
@@ -262,7 +261,6 @@ elif scelta_menu == "TEAM RESULT":
             ("Day 7 - 29/08/2026", 63),
         ]
 
-        # Mappatura colonne lettere -> indici numerici pandas (A=0, E=4, J=9, T=19, Y=24, AD=29, AJ=35, AN=39)
         col_team_idx = 4   # Colonna E
         col_g1_idx = 9     # Colonna J
         col_g2_idx = 19    # Colonna T
@@ -271,24 +269,47 @@ elif scelta_menu == "TEAM RESULT":
         col_g5_idx = 35    # Colonna AJ
         col_tot_idx = 39   # Colonna AN
 
+        max_rows = len(df_team)
+        max_cols = len(df_team.columns)
+
         for nome_giornata, start_row in giornate_team_config:
             with st.container():
                 st.markdown(f"<div class='day-box'>", unsafe_allow_html=True)
                 st.markdown(f"<div class='day-title'>{nome_giornata}</div>", unsafe_allow_html=True)
 
-                end_row = start_row + 3  # 4 squadre (righe da start_row a start_row + 3)
+                end_row = start_row + 3  
                 
-                try:
-                    teams = df_team.iloc[start_row:end_row+1, col_team_idx].fillna("").astype(str).tolist()
-                    while len(teams) < 4:
-                        teams.append("")
+                # Controllo di sicurezza per evitare errori out-of-bounds se il foglio è corto
+                if start_row >= max_rows:
+                    df_giornata = pd.DataFrame({
+                        "Team": ["", "", "", ""],
+                        "Game 1": [0, 0, 0, 0],
+                        "Game 2": [0, 0, 0, 0],
+                        "Game 3": [0, 0, 0, 0],
+                        "Game 4": [0, 0, 0, 0],
+                        "Game 5": [0, 0, 0, 0],
+                        "Total": [0, 0, 0, 0],
+                        "Podio / Posizionamento": ["1° Place", "2° Place", "3° Place", "4° Place"]
+                    })
+                else:
+                    actual_end = min(end_row, max_rows - 1)
+                    
+                    def safe_get(c_idx, default_val):
+                        if c_idx < max_cols:
+                            vals = df_team.iloc[start_row:actual_end+1, c_idx].fillna(default_val).tolist()
+                            while len(vals) < 4:
+                                vals.append(default_val)
+                            return vals
+                        return [default_val] * 4
 
-                    g1 = df_team.iloc[start_row:end_row+1, col_g1_idx].fillna(0).tolist()
-                    g2 = df_team.iloc[start_row:end_row+1, col_g2_idx].fillna(0).tolist()
-                    g3 = df_team.iloc[start_row:end_row+1, col_g3_idx].fillna(0).tolist()
-                    g4 = df_team.iloc[start_row:end_row+1, col_g4_idx].fillna(0).tolist()
-                    g5 = df_team.iloc[start_row:end_row+1, col_g5_idx].fillna(0).tolist()
-                    totals = df_team.iloc[start_row:end_row+1, col_tot_idx].fillna(0).tolist()
+                    teams = safe_get(col_team_idx, "")
+                    teams = [str(t) for t in teams]
+                    g1 = safe_get(col_g1_idx, 0)
+                    g2 = safe_get(col_g2_idx, 0)
+                    g3 = safe_get(col_g3_idx, 0)
+                    g4 = safe_get(col_g4_idx, 0)
+                    g5 = safe_get(col_g5_idx, 0)
+                    totals = safe_get(col_tot_idx, 0)
 
                     df_giornata = pd.DataFrame({
                         "Team": teams,
@@ -312,11 +333,7 @@ elif scelta_menu == "TEAM RESULT":
                     df_giornata["Podio / Posizionamento"] = pd.Series(podio_col)
                     df_giornata = df_giornata.drop(columns=["NumericTotal"])
 
-                    st.dataframe(df_giornata, use_container_width=True, hide_index=True)
-
-                except Exception as e:
-                    st.error(f"Errore caricamento {nome_giornata}: {e}")
-
+                st.dataframe(df_giornata, use_container_width=True, hide_index=True)
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.error("Impossibile caricare i dati della tab Team Result.")
