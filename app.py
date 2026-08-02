@@ -92,7 +92,6 @@ scelta_menu = st.sidebar.radio(
 # Configurazione Google Sheet e GID specifici per tab
 SHEET_ID = "1rDMEgmeHJlO0sBz-U4szt_vGAfgBbu1wDfv3yAlyCUU"
 GID_LEADERBOARD = 316677537
-GID_TEAM_RESULT = 547827980
 GID_PERSONAL_STATS = 1111383455
 
 url_export = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
@@ -105,7 +104,6 @@ SCOPES = [
 
 def ottieni_credenziali():
     creds = dict(st.secrets["gcp_service_account"])
-    # Pulisce e formatta correttamente la chiave privata indipendentemente da come viene letta dai secrets
     if "private_key" in creds:
         creds["private_key"] = creds["private_key"].replace("\\n", "\n")
     return Credentials.from_service_account_info(
@@ -152,25 +150,6 @@ def carica_google_sheet_completo(url):
 xls_data = carica_google_sheet_completo(url_export)
 
 def get_df_by_gid(target_gid):
-    if target_gid == GID_TEAM_RESULT:
-        try:
-            creds = ottieni_credenziali()
-            client = gspread.authorize(creds)
-            sheet = client.open_by_key(SHEET_ID)
-            
-            target_ws = None
-            for ws in sheet.worksheets():
-                if str(ws.id) == str(target_gid):
-                    target_ws = ws
-                    break
-            
-            if target_ws:
-                data = target_ws.get_all_values()
-                return pd.DataFrame(data)
-        except Exception as e:
-            st.error(f"Errore lettura GID {target_gid}: {e}")
-        return None
-
     if xls_data is None:
         return None
     try:
@@ -268,9 +247,33 @@ elif scelta_menu == "TEAM RESULT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📊 Team Result")
 
-    df_team_result = get_df_by_gid(GID_TEAM_RESULT)
+    df_team_result = None
+    try:
+        creds = ottieni_credenziali()
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(SHEET_ID)
+        
+        target_ws = None
+        for ws in sheet.worksheets():
+            ws_title_lower = ws.title.lower()
+            if "team" in ws_title_lower or "result" in ws_title_lower:
+                target_ws = ws
+                break
+        
+        if not target_ws:
+            worksheets_list = sheet.worksheets()
+            if len(worksheets_list) > 1:
+                target_ws = worksheets_list[1]
+            else:
+                target_ws = worksheets_list[0]
 
-    if df_team_result is not None:
+        if target_ws:
+            data = target_ws.get_all_values()
+            df_team_result = pd.DataFrame(data)
+    except Exception as e:
+        st.error(f"Errore di connessione al Google Sheet: {e}")
+
+    if df_team_result is not None and not df_team_result.empty:
         giornate_team_config = [
             ("Day 1 - 18/07/2026", 9, 12),
             ("Day 2 - 25/07/2026", 18, 21),
