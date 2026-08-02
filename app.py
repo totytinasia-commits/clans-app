@@ -249,36 +249,26 @@ if scelta_menu == "SCHEDULE":
         date_str = f"{item['DATE']} 2026"
         match_date = datetime.strptime(date_str, "%b %d %Y").replace(tzinfo=timezone(timedelta(hours=2)))
         
-        week_val = item["WEEK"]
-        date_val = item["DATE"]
-        time_val = item["TIME"]
-        matchups_val = item["MATCHUPS"]
-
-        if match_date < oggi:
-            week_val = f"~~{week_val}~~"
-            date_val = f"~~{date_val}~~"
-            time_val = f"~~{time_val}~~"
-            matchups_val = f"~~{matchups_val}~~"
-
+        # Manteniamo i valori puliti senza markdown o sbarramenti
         schedule_rows.append({
-            "WEEK": week_val,
-            "DATE": date_val,
-            "TIME": time_val,
-            "MATCHUPS": matchups_val
+            "WEEK": item["WEEK"],
+            "DATE": item["DATE"],
+            "TIME": item["TIME"],
+            "MATCHUPS": item["MATCHUPS"],
+            "_MATCH_DATE": match_date  # Colonna di servizio per il confronto
         })
 
     df_schedule = pd.DataFrame(schedule_rows)
 
     def color_past_rows(row):
-        # Controlla se la riga è barrata (quindi passata)
-        is_past = any(str(val).startswith("~~") for val in row)
-        return ['color: #ff4b4b' if is_past else '' for _ in row]
+        is_past = row["_MATCH_DATE"] < oggi
+        return ['color: #ff4b4b' if is_past else '' for _ in row.index]
 
-    df_styled = df_schedule.style.apply(color_past_rows, axis=1)
+    # Applichiamo lo stile colorando la riga e rimuoviamo la colonna di servizio dalla vista
+    df_styled = df_schedule.drop(columns=["_MATCH_DATE"]).style.apply(color_past_rows, axis=1)
 
     st.dataframe(df_styled, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
-
 # ==========================================
 # --- SEZIONE: LEADERBOARD ---
 # ==========================================
