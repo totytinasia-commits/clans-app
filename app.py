@@ -105,6 +105,9 @@ SCOPES = [
 
 def ottieni_credenziali():
     creds = dict(st.secrets["gcp_service_account"])
+    # Pulisce e formatta correttamente la chiave privata indipendentemente da come viene letta dai secrets
+    if "private_key" in creds:
+        creds["private_key"] = creds["private_key"].replace("\\n", "\n")
     return Credentials.from_service_account_info(
         creds,
         scopes=SCOPES
