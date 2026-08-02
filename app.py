@@ -105,11 +105,6 @@ SCOPES = [
 
 def ottieni_credenziali():
     creds = dict(st.secrets["gcp_service_account"])
-
-    st.write("Lunghezza chiave:", len(creds["private_key"]))
-    st.write("Inizio:", repr(creds["private_key"][:40]))
-    st.write("Fine:", repr(creds["private_key"][-40:]))
-
     return Credentials.from_service_account_info(
         creds,
         scopes=SCOPES
