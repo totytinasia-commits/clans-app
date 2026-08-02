@@ -304,7 +304,16 @@ elif scelta_menu == "LEADERBOARD":
                 st.markdown(f"<div class='day-title'>{nome_giornata}</div>", unsafe_allow_html=True)
                 
                 df_day = pd.DataFrame({"Team": teams, "Score": scores})
-                st.dataframe(df_day, use_container_width=True, hide_index=True)
+                
+                # Funzione per colorare in verde la prima riga (primo team)
+                def color_first_row(row):
+                    if row.name == 0:
+                        return ['color: #22c55e; font-weight: bold;' for _ in row.index]
+                    return ['' for _ in row.index]
+
+                df_day_styled = df_day.style.apply(color_first_row, axis=1)
+
+                st.dataframe(df_day_styled, use_container_width=True, hide_index=True)
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.error("Unable to read Leaderboard tab.")
