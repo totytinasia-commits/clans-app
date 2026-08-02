@@ -154,44 +154,44 @@ def carica_google_sheet_completo(url):
 xls_data = carica_google_sheet_completo(url_export)
 
 def get_df_by_gid(target_gid):
-    if str(target_gid).strip() == str(GID_TEAM_RESULT).strip():
-        try:
-            creds = ottieni_credenziali()
-            client = gspread.authorize(creds)
-            sheet = client.open_by_key(SHEET_ID)
-            
-            target_ws = None
-            for ws in sheet.worksheets():
-                if str(ws.id).strip() == str(target_gid).strip():
-                    target_ws = ws
-                    break
-            
-            if target_ws:
-                data = target_ws.get_all_values()
-                return pd.DataFrame(data)
-        except Exception as e:
-            st.error(f"Errore lettura GID {target_gid}: {e}")
-        return None
-
-    if xls_data is None:
-        return None
+    """
+    Legge il foglio tramite API di Google per mappare il GID al nome della tab,
+    quindi estrae i dati tramite xls_data (esportazione Excel) se disponibile,
+    garantendo stabilità e velocità. Se l'export fallisce, usa gspread come fallback.
+    """
     try:
         creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
         
         target_title = None
+        target_ws = None
         for ws in sheet.worksheets():
             if str(ws.id).strip() == str(target_gid).strip():
                 target_title = ws.title
+                target_ws = ws
                 break
         
-        if target_title and target_title in xls_data.sheet_names:
+        # Tentativo 1: Lettura tramite Excel export (più affidabile per grandi tabelle)
+        if xls_data is not None and target_title and target_title in xls_data.sheet_names:
             return pd.read_excel(xls_data, sheet_name=target_title, header=None)
-    except Exception:
-        pass
+        
+        # Tentativo 2: Fallback diretto con gspread se il foglio non è nell'export Excel
+        if target_ws:
+            data = target_ws.get_all_values()
+            return pd.DataFrame(data)
+            
+    except Exception as e:
+        st.error(f"Errore lettura GID {target_gid}: {e}")
     
-    return pd.read_excel(xls_data, sheet_name=0, header=None)
+    # Ultimo fallback sul primo foglio in caso di errore generale
+    if xls_data is not None:
+        try:
+            return pd.read_excel(xls_data, sheet_name=0, header=None)
+        except Exception:
+            pass
+            
+    return None
 
 # ==========================================
 # --- SEZIONE: SCHEDULE ---
