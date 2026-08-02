@@ -104,8 +104,13 @@ SCOPES = [
 ]
 
 def ottieni_credenziali():
-    # Utilizza esclusivamente le credenziali dai Secrets di Streamlit Cloud
+    # Convertiamo i secrets in un dizionario standard ed eliminiamo eventuali problemi di formattazione della chiave
     creds_dict = dict(st.secrets["gcp_service_account"])
+    
+    # Assicuriamoci che i newline siano corretti nella private_key
+    if "private_key" in creds_dict:
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+        
     return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
 
 def scrivi_cella_per_gid(target_gid, cella, valore):
