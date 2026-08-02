@@ -242,12 +242,10 @@ if scelta_menu == "SCHEDULE":
 
     from datetime import datetime, timezone, timedelta
 
-    # Data corrente fissa o dinamica basata sul contesto (2 agosto 2026)
     oggi = datetime(2026, 8, 2, tzinfo=timezone(timedelta(hours=2)))
 
     schedule_rows = []
     for item in schedule_data:
-        # Parsing della data (es. "JUL 18" -> anno 2026)
         date_str = f"{item['DATE']} 2026"
         match_date = datetime.strptime(date_str, "%b %d %Y").replace(tzinfo=timezone(timedelta(hours=2)))
         
@@ -256,12 +254,11 @@ if scelta_menu == "SCHEDULE":
         time_val = item["TIME"]
         matchups_val = item["MATCHUPS"]
 
-        # Se la data della partita è precedente a oggi, barra i valori
         if match_date < oggi:
-            week_val = f"~~{week_val}~~"
-            date_val = f"~~{date_val}~~"
-            time_val = f"~~{time_val}~~"
-            matchups_val = f"~~{matchups_val}~~"
+            week_val = f":red[~~{week_val}~~]"
+            date_val = f":red[~~{date_val}~~]"
+            time_val = f":red[~~{time_val}~~]"
+            matchups_val = f":red[~~{matchups_val}~~]"
 
         schedule_rows.append({
             "WEEK": week_val,
