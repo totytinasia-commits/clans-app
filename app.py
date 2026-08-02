@@ -111,33 +111,14 @@ def ottieni_credenziali():
             if "private_key" in creds_dict:
                 creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
             return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-    except Exception as e:
-        st.sidebar.error(f"Errore caricamento st.secrets: {e}")
+    except Exception:
+        pass
     
     # 2. Fallback su file locale credentials.json
     try:
         return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
-    except Exception as e:
-        st.sidebar.error(f"Errore caricamento credentials.json locale: {e}")
+    except Exception:
         return None
-
-# --- PANNELLO DI DEBUG RAPIDO IN SIDEBAR ---
-with st.sidebar.expander("🛠️ Debug Connessione & Fogli"):
-    creds_test = ottieni_credenziali()
-    if creds_test:
-        st.success("Credenziali caricate correttamente!")
-        st.text(f"Service Account Email:\n{creds_test.service_account_email}")
-        try:
-            client_test = gspread.authorize(creds_test)
-            sheet_test = client_test.open_by_key(SHEET_ID)
-            st.write(f"**Titolo Doc:** {sheet_test.title}")
-            st.write("**Fogli trovati nel documento:**")
-            for ws in sheet_test.worksheets():
-                st.code(f"Nome: '{ws.title}' | GID: {ws.id}")
-        except Exception as ex:
-            st.error(f"Impossibile aprire il Google Sheet tramite API. Assicurati di averlo condiviso con l'email del Service Account! Errore: {ex}")
-    else:
-                st.error("Nessuna credenziale valida trovata (controlla st.secrets o credentials.json).")
 
 def scrivi_cella_per_gid(target_gid, cella, valore):
     try:
@@ -179,9 +160,6 @@ def carica_google_sheet_completo(url):
 xls_data = carica_google_sheet_completo(url_export)
 
 def get_df_by_gid(target_gid):
-    """
-    Legge il foglio in tempo reale tramite gspread con un fallback robusto sull'export Excel
-    """
     target_title = None
     
     # 1. Tentativo di lettura live tramite gspread
@@ -216,7 +194,7 @@ def get_df_by_gid(target_gid):
         except Exception:
             pass
 
-    # 3. Fallback finale su Excel in memoria (tramite xls_data)
+    # 3. Fallback finale su Excel in memoria
     try:
         if xls_data is not None:
             sheets_list = xls_data.sheet_names
@@ -225,7 +203,7 @@ def get_df_by_gid(target_gid):
             elif len(sheets_list) > 0:
                 return pd.read_excel(xls_data, sheet_name=0, header=None)
     except Exception as ex:
-        st.error(f"Errore lettura GID {target_gid} (Fallback Excel fallito): {ex}")
+        st.error(f"Errore lettura GID {target_gid}: {ex}")
             
     return None
 
