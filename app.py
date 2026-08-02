@@ -104,20 +104,46 @@ SCOPES = [
 ]
 
 def ottieni_credenziali():
+    # 1. Prova da st.secrets (Streamlit Cloud)
     try:
         if "gcp_service_account" in st.secrets:
             creds_dict = dict(st.secrets["gcp_service_account"])
             if "private_key" in creds_dict:
                 creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
             return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-    except Exception:
-        pass
+    except Exception as e:
+        st.sidebar.error(f"Errore caricamento st.secrets: {e}")
     
-    return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+    # 2. Fallback su file locale credentials.json
+    try:
+        return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+    except Exception as e:
+        st.sidebar.error(f"Errore caricamento credentials.json locale: {e}")
+        return None
+
+# --- PANNELLO DI DEBUG RAPIDO IN SIDEBAR ---
+with st.sidebar.expander("🛠️ Debug Connessione & Fogli"):
+    creds_test = ottieni_credenziali()
+    if creds_test:
+        st.success("Credenziali caricate correttamente!")
+        st.text(f"Service Account Email:\n{creds_test.service_account_email}")
+        try:
+            client_test = gspread.authorize(creds_test)
+            sheet_test = client_test.open_by_key(SHEET_ID)
+            st.write(f"**Titolo Doc:** {sheet_test.title}")
+            st.write("**Fogli trovati nel documento:**")
+            for ws in sheet_test.worksheets():
+                st.code(f"Nome: '{ws.title}' | GID: {ws.id}")
+        except Exception as ex:
+            st.error(f"Impossibile aprire il Google Sheet tramite API. Assicurati di averlo condiviso con l'email del Service Account! Errore: {ex}")
+    else:
+                st.error("Nessuna credenziale valida trovata (controlla st.secrets o credentials.json).")
 
 def scrivi_cella_per_gid(target_gid, cella, valore):
     try:
         creds = ottieni_credenziali()
+        if not creds:
+            return False
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
         
@@ -147,49 +173,59 @@ def carica_google_sheet_completo(url):
         content_bytes = scarica_bytes_sheet(url)
         xls = pd.ExcelFile(io.BytesIO(content_bytes))
         return xls
-    except Exception as e:
+    except Exception:
         return None
 
 xls_data = carica_google_sheet_completo(url_export)
 
 def get_df_by_gid(target_gid):
     """
-    Legge il foglio in tempo reale direttamente tramite l'API di gspread per garantire
-    che le formule siano calcolate correttamente e fresche, usando l'export Excel come fallback.
+    Legge il foglio in tempo reale tramite gspread con un fallback robusto sull'export Excel
     """
+    target_title = None
+    
+    # 1. Tentativo di lettura live tramite gspread
     try:
         creds = ottieni_credenziali()
-        client = gspread.authorize(creds)
-        sheet = client.open_by_key(SHEET_ID)
-        
-        target_ws = None
-        for ws in sheet.worksheets():
-            if str(ws.id).strip() == str(target_gid).strip():
-                target_ws = ws
-                break
-        
-        if target_ws:
-            data = target_ws.get_all_values()
-            if data:
-                return pd.DataFrame(data)
-                
+        if creds:
+            client = gspread.authorize(creds)
+            sheet = client.open_by_key(SHEET_ID)
+            
+            target_ws = None
+            for ws in sheet.worksheets():
+                if str(ws.id).strip() == str(target_gid).strip():
+                    target_ws = ws
+                    target_title = ws.title
+                    break
+            
+            if target_ws:
+                data = target_ws.get_all_values()
+                if data and len(data) > 0:
+                    return pd.DataFrame(data)
     except Exception:
         pass
     
-    # Fallback su Excel in memoria se l'API dovesse fallire temporaneamente
+    # 2. Tentativo di recupero del nome tab se gspread ha fallito ma abbiamo l'export Excel
+    if not target_title and xls_data is not None:
+        try:
+            creds = ottieni_credenziali()
+            if creds:
+                client = gspread.authorize(creds)
+                sheet = client.open_by_key(SHEET_ID)
+                target_title = next((ws.title for ws in sheet.worksheets() if str(ws.id).strip() == str(target_gid).strip()), None)
+        except Exception:
+            pass
+
+    # 3. Fallback finale su Excel in memoria (tramite xls_data)
     try:
         if xls_data is not None:
-            creds = ottieni_credenziali()
-            client = gspread.authorize(creds)
-            sheet = client.open_by_key(SHEET_ID)
-            target_title = next((ws.title for ws in sheet.worksheets() if str(ws.id).strip() == str(target_gid).strip()), None)
-            
-            if target_title and target_title in xls_data.sheet_names:
+            sheets_list = xls_data.sheet_names
+            if target_title and target_title in sheets_list:
                 return pd.read_excel(xls_data, sheet_name=target_title, header=None)
-            elif len(xls_data.sheet_names) > 0:
+            elif len(sheets_list) > 0:
                 return pd.read_excel(xls_data, sheet_name=0, header=None)
     except Exception as ex:
-        st.error(f"Errore lettura GID {target_gid}: {ex}")
+        st.error(f"Errore lettura GID {target_gid} (Fallback Excel fallito): {ex}")
             
     return None
 
@@ -366,24 +402,25 @@ elif scelta_menu == "PERSONAL STATS":
 
     try:
         creds = ottieni_credenziali()
-        client = gspread.authorize(creds)
-        sheet = client.open_by_key(SHEET_ID)
-        target_ws = next((ws for ws in sheet.worksheets() if str(ws.id).strip() == str(GID_PERSONAL_STATS).strip()), None)
-        
-        if target_ws:
-            d9_raw = target_ws.acell("D9").value
-            if d9_raw is not None and str(d9_raw).strip() != "":
-                current_d9_val = str(d9_raw).strip()
+        if creds:
+            client = gspread.authorize(creds)
+            sheet = client.open_by_key(SHEET_ID)
+            target_ws = next((ws for ws in sheet.worksheets() if str(ws.id).strip() == str(GID_PERSONAL_STATS).strip()), None)
             
-            col_c_values = target_ws.get("C12:C60")
-            for row in col_c_values:
-                if row and len(row) > 0:
-                    p = str(row[0]).strip()
-                    if p and p.lower() not in ["nan", "none", ""]:
-                        extracted_players.append(p)
-            extracted_players = list(dict.fromkeys(extracted_players))
+            if target_ws:
+                d9_raw = target_ws.acell("D9").value
+                if d9_raw is not None and str(d9_raw).strip() != "":
+                    current_d9_val = str(d9_raw).strip()
+                
+                col_c_values = target_ws.get("C12:C60")
+                for row in col_c_values:
+                    if row and len(row) > 0:
+                        p = str(row[0]).strip()
+                        if p and p.lower() not in ["nan", "none", ""]:
+                            extracted_players.append(p)
+                extracted_players = list(dict.fromkeys(extracted_players))
     except Exception as e:
-        st.warning(f"Errore lettura iniziale foglio: {e}")
+        st.warning(f"Errore lettura iniziale foglio Personal Stats: {e}")
 
     if not extracted_players:
         extracted_players = ["No players available"]
@@ -403,12 +440,12 @@ elif scelta_menu == "PERSONAL STATS":
         selected_d9_val = rounds_config[selected_round_label]
         if str(selected_d9_val).lower() != str(current_d9_val).lower():
             scrivi_cella_per_gid(GID_PERSONAL_STATS, "D9", selected_d9_val)
-            time.sleep(0.4) # Sincronizzazione per dare tempo al foglio di ricalcolare le formule
+            time.sleep(0.4)
 
     with col2:
         selected_d21_val = st.selectbox("Select Player", extracted_players)
         scrivi_cella_per_gid(GID_PERSONAL_STATS, "D21", selected_d21_val)
-        time.sleep(0.4) # Sincronizzazione per dare tempo al foglio di ricalcolare le formule
+        time.sleep(0.4)
 
     with st.spinner("Aggiornamento dati in corso..."):
         time.sleep(0.2)
