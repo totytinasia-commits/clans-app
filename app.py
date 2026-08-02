@@ -152,6 +152,25 @@ def carica_google_sheet_completo(url):
 xls_data = carica_google_sheet_completo(url_export)
 
 def get_df_by_gid(target_gid):
+    if target_gid == GID_TEAM_RESULT:
+        try:
+            creds = ottieni_credenziali()
+            client = gspread.authorize(creds)
+            sheet = client.open_by_key(SHEET_ID)
+            
+            target_ws = None
+            for ws in sheet.worksheets():
+                if str(ws.id) == str(target_gid):
+                    target_ws = ws
+                    break
+            
+            if target_ws:
+                data = target_ws.get_all_values()
+                return pd.DataFrame(data)
+        except Exception as e:
+            st.error(f"Errore lettura GID {target_gid}: {e}")
+        return None
+
     if xls_data is None:
         return None
     try:
