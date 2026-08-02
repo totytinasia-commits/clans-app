@@ -6,12 +6,12 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 
-# --- CONFIGURAZIONE DELLA PAGINA ---
+# Configurazione della pagina
 st.set_page_config(
     page_title="Clans Leagues Session 7", page_icon="🛡️", layout="centered"
 )
 
-# --- STILE GRAFICO OTTIMIZZATO ---
+# Stile grafico ottimizzato per mobile e contenitori
 st.markdown(
     """
     <style>
@@ -61,7 +61,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- HEADER ---
+# Header con titolo, sottotitolo EU ELITE e icone ai lati
 col_logo1, col_title, col_logo2 = st.columns([1, 3, 1])
 with col_logo1:
     st.markdown("<h1 style='text-align: center; margin: 0;'>🛡️</h1>", unsafe_allow_html=True)
@@ -76,7 +76,7 @@ with col_logo2:
 
 st.markdown("---")
 
-# --- MENU DI NAVIGAZIONE (SIDEBAR) ---
+# Menu di navigazione a sinistra (Sidebar)
 st.sidebar.title("🧭 Navigation")
 scelta_menu = st.sidebar.radio(
     "Select Section",
@@ -89,26 +89,29 @@ scelta_menu = st.sidebar.radio(
     ],
 )
 
-# --- VARIABILI GLOBALI E GID ---
+# Configurazione Google Sheet e GID specifici per tab
 SHEET_ID = "1rDMEgmeHJlO0sBz-U4szt_vGAfgBbu1wDfv3yAlyCUU"
 GID_LEADERBOARD = 316677537
 GID_TEAM_RESULT = 547827980
 GID_PERSONAL_STATS = 1111383455
 
-# --- CONFIGURAZIONE GOOGLE SHEETS API & CREDENZIALI ---
+url_export = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
+
+# --- CONFIGURAZIONE GOOGLE SHEETS API & CREDENZIALI ibride (Cloud / Locale) ---
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
 ]
 
 def ottieni_credenziali():
-    creds = dict(st.secrets["gcp_service_account"])
-    if "private_key" in creds:
-        creds["private_key"] = creds["private_key"].replace("\\n", "\n")
-    return Credentials.from_service_account_info(
-        creds,
-        scopes=SCOPES
-    )
+    try:
+        if "gcp_service_account" in st.secrets:
+            creds_dict = dict(st.secrets["gcp_service_account"])
+            return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    except Exception:
+        pass
+    
+    return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
 
 def scrivi_cella_per_gid(target_gid, cella, valore):
     try:
@@ -118,7 +121,7 @@ def scrivi_cella_per_gid(target_gid, cella, valore):
         
         worksheet = None
         for ws in sheet.worksheets():
-            if str(ws.id).strip() == str(target_gid).strip():
+            if str(ws.id) == str(target_gid):
                 worksheet = ws
                 break
         
@@ -132,29 +135,63 @@ def scrivi_cella_per_gid(target_gid, cella, valore):
         return False
 
 @st.cache_data(ttl=10)
+def scarica_bytes_sheet(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.content
+
+def carica_google_sheet_completo(url):
+    try:
+        content_bytes = scarica_bytes_sheet(url)
+        xls = pd.ExcelFile(io.BytesIO(content_bytes))
+        return xls
+    except Exception as e:
+        st.error(f"Errore di caricamento del Google Sheet: {e}")
+        return None
+
+xls_data = carica_google_sheet_completo(url_export)
+
 def get_df_by_gid(target_gid):
+    if target_gid == GID_TEAM_RESULT:
+        try:
+            creds = ottieni_credenziali()
+            client = gspread.authorize(creds)
+            sheet = client.open_by_key(SHEET_ID)
+            
+            target_ws = None
+            for ws in sheet.worksheets():
+                if str(ws.id) == str(target_gid):
+                    target_ws = ws
+                    break
+            
+            if target_ws:
+                data = target_ws.get_all_values()
+                return pd.DataFrame(data)
+        except Exception as e:
+            st.error(f"Errore lettura GID {target_gid}: {e}")
+        return None
+
+    if xls_data is None:
+        return None
     try:
         creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
         
-        worksheet = None
+        target_title = None
         for ws in sheet.worksheets():
-            if str(ws.id).strip() == str(target_gid).strip():
-                worksheet = ws
+            if str(ws.id) == str(target_gid):
+                target_title = ws.title
                 break
         
-        if worksheet:
-            data = worksheet.get_all_values()
-            return pd.DataFrame(data)
-    except Exception as e:
-        st.error(f"Errore di lettura del GID {target_gid}: {e}")
+        if target_title and target_title in xls_data.sheet_names:
+            return pd.read_excel(xls_data, sheet_name=target_title, header=None)
+    except Exception:
+        pass
     
-    return None
+    return pd.read_excel(xls_data, sheet_name=0, header=None)
 
-# ==========================================
 # --- SEZIONE: SCHEDULE ---
-# ==========================================
 if scelta_menu == "SCHEDULE":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📅 Schedule — EU ELITE\n<p style='color: #888; font-size: 0.9rem;'>All times EST</p>", unsafe_allow_html=True)
@@ -173,9 +210,7 @@ if scelta_menu == "SCHEDULE":
     st.dataframe(df_schedule, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ==========================================
 # --- SEZIONE: LEADERBOARD ---
-# ==========================================
 elif scelta_menu == "LEADERBOARD":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 🏆 Leaderboard & Match Results - EU ELITE")
@@ -213,9 +248,7 @@ elif scelta_menu == "LEADERBOARD":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ==========================================
 # --- SEZIONE: SYSTEM SCORE ---
-# ==========================================
 elif scelta_menu == "SYSTEM SCORE":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### ⚙️ System Score")
@@ -230,9 +263,7 @@ elif scelta_menu == "SYSTEM SCORE":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ==========================================
 # --- SEZIONE: TEAM RESULT ---
-# ==========================================
 elif scelta_menu == "TEAM RESULT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📊 Team Result")
@@ -241,73 +272,65 @@ elif scelta_menu == "TEAM RESULT":
 
     if df_team_result is not None:
         giornate_team_config = [
-            ("Day 1 - 18/07/2026", 9),
-            ("Day 2 - 25/07/2026", 18),
-            ("Day 3 - 01/08/2026", 27),
-            ("Day 4 - 08/08/2026", 36),
-            ("Day 5 - 15/08/2026", 45),
-            ("Day 6 - 22/08/2026", 54),
-            ("Day 7 - 29/08/2026", 63),
+            ("Day 1 - 18/07/2026", 9, 12),
+            ("Day 2 - 25/07/2026", 18, 21),
+            ("Day 3 - 01/08/2026", 27, 30),
+            ("Day 4 - 08/08/2026", 36, 39),
+            ("Day 5 - 15/08/2026", 45, 48),
+            ("Day 6 - 22/08/2026", 54, 57),
+            ("Day 7 - 29/08/2026", 63, 66),
         ]
 
-        c_team, c_g1, c_g2, c_g3, c_g4, c_g5, c_tot = 4, 9, 14, 19, 24, 29, 33
+        col_team = 4
+        match_cols = [9, 14, 19, 24, 29]
+        col_total = 30
 
-        for nome_giornata, start_idx in giornate_team_config:
+        for nome_giornata, r_start, r_end in giornate_team_config:
             with st.container():
                 st.markdown(f"<div class='day-box'>", unsafe_allow_html=True)
                 st.markdown(f"<div class='day-title'>{nome_giornata}</div>", unsafe_allow_html=True)
 
-                teams, g1, g2, g3, g4, g5, totals = [], [], [], [], [], [], []
+                try:
+                    teams = df_team_result.iloc[r_start:r_end+1, col_team].fillna("").values
+                    
+                    match_data = {}
+                    for idx, c_idx in enumerate(match_cols):
+                        try:
+                            match_data[f"Game {idx+1}"] = df_team_result.iloc[r_start:r_end+1, c_idx].fillna(0).values
+                        except Exception:
+                            match_data[f"Game {idx+1}"] = [0, 0, 0, 0]
 
-                for row_idx in range(start_idx, start_idx + 4):
-                    if row_idx < len(df_team_result):
-                        def get_safe_val(r, c, default="0"):
-                            try:
-                                val = df_team_result.iloc[r, c]
-                                return str(val).strip() if pd.notna(val) and str(val).strip() != "" else default
-                            except Exception:
-                                return default
+                    try:
+                        totals = df_team_result.iloc[r_start:r_end+1, col_total].fillna(0).values
+                    except Exception:
+                        totals = [0, 0, 0, 0]
 
-                        teams.append(get_safe_val(row_idx, c_team, ""))
-                        g1.append(get_safe_val(row_idx, c_g1, "0"))
-                        g2.append(get_safe_val(row_idx, c_g2, "0"))
-                        g3.append(get_safe_val(row_idx, c_g3, "0"))
-                        g4.append(get_safe_val(row_idx, c_g4, "0"))
-                        g5.append(get_safe_val(row_idx, c_g5, "0"))
-                        totals.append(get_safe_val(row_idx, c_tot, "0"))
-                    else:
-                        teams.append("")
-                        for lst in [g1, g2, g3, g4, g5, totals]: lst.append("0")
+                    df_giornata = pd.DataFrame({"Team": teams, **match_data, "Total": totals})
+                    
+                    df_giornata["NumericTotal"] = pd.to_numeric(df_giornata["Total"], errors="coerce").fillna(0)
+                    df_sorted = df_giornata.sort_values(by="NumericTotal", ascending=False).reset_index(drop=True)
 
-                df_giornata = pd.DataFrame({
-                    "Team": teams,
-                    "Game 1": g1,
-                    "Game 2": g2,
-                    "Game 3": g3,
-                    "Game 4": g4,
-                    "Game 5": g5,
-                    "Total": totals
-                })
-                
-                df_giornata["NumericTotal"] = pd.to_numeric(df_giornata["Total"], errors="coerce").fillna(0)
-                df_sorted = df_giornata.sort_values(by="NumericTotal", ascending=False).reset_index(drop=True)
+                    podio_labels = ["1° Place", "2° Place", "3° Place", "4° Place"]
+                    podio_col = []
+                    for i, row in df_sorted.iterrows():
+                        pos_str = podio_labels[i] if i < len(podio_labels) else f"{i+1}° Place"
+                        podio_col.append(f"{pos_str}: {row['Team']} ({row['NumericTotal']} pts)")
 
-                podio_labels = ["1° Place", "2° Place", "3° Place", "4° Place"]
-                podio_col = [f"{podio_labels[i]}: {row['Team']} ({row['NumericTotal']} pts)" for i, row in df_sorted.iterrows()]
+                    df_giornata["Podio / Posizionamento"] = pd.Series(podio_col)
+                    df_giornata = df_giornata.drop(columns=["NumericTotal"])
 
-                df_giornata["Podio / Posizionamento"] = pd.Series(podio_col)
-                df_giornata = df_giornata.drop(columns=["NumericTotal"])
+                    st.dataframe(df_giornata, use_container_width=True, hide_index=True)
 
-                st.dataframe(df_giornata, use_container_width=True, hide_index=True)
+                except Exception as e:
+                    st.error(f"Errore caricamento {nome_giornata}: {e}")
+
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.error("Unable to read Team Result tab.")
+        st.error("Impossibile connettersi alla tab Team Result.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ==========================================
 # --- SEZIONE: PERSONAL STATS ---
-# ==========================================
 elif scelta_menu == "PERSONAL STATS":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 👤 Personal Stats Dashboard")
@@ -323,6 +346,8 @@ elif scelta_menu == "PERSONAL STATS":
         "Round 7": 7,
     }
     
+    inv_rounds_config = {str(v): k for k, v in rounds_config.items()}
+
     col1, col2 = st.columns(2)
 
     target_ws = None
@@ -333,7 +358,7 @@ elif scelta_menu == "PERSONAL STATS":
         creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
-        target_ws = next((ws for ws in sheet.worksheets() if str(ws.id).strip() == str(GID_PERSONAL_STATS).strip()), None)
+        target_ws = next((ws for ws in sheet.worksheets() if str(ws.id) == str(GID_PERSONAL_STATS)), None)
         
         if target_ws:
             d9_raw = target_ws.acell("D9").value
