@@ -105,14 +105,12 @@ SCOPES = [
 
 def ottieni_credenziali():
     try:
-        # Se siamo su Streamlit Cloud e i Secrets sono configurati
         if "gcp_service_account" in st.secrets:
             creds_dict = dict(st.secrets["gcp_service_account"])
             return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
     except Exception:
         pass
     
-    # Altrimenti prova a caricare il file locale (per quando sei sul tuo PC)
     return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
 
 def scrivi_cella_per_gid(target_gid, cella, valore):
