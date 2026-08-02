@@ -101,14 +101,14 @@ with col_logo2:
 
 st.markdown("---")
 
-# --- LEGENDA COLORI IN ALTO ---
+# --- LEGENDA COLORI IN ALTO (ENGLISH) ---
 st.markdown(
     """
     <div class='legend-box'>
-        <strong>🎨 LEGENDA COLORI:</strong><br>
-        • <span style='color: #ff4b4b; font-weight: bold;'>Rosso</span>: Partite/giornate passate (Schedule) o Punteggio più basso nel singolo match (Team Result).<br>
-        • <span style='color: #22c55e; font-weight: bold;'>Verde</span>: Primo team in classifica / Posizionamento a podio.<br>
-        • <span style='color: #3b82f6; font-weight: bold;'>Blu</span>: Punteggio più alto nel singolo match (Team Result).
+        <strong>🎨 COLOR LEGEND:</strong><br>
+        • <span style='color: #ff4b4b; font-weight: bold;'>Red</span>: Past matches/days (Schedule) or Lowest score in a single match (Team Result).<br>
+        • <span style='color: #22c55e; font-weight: bold;'>Green</span>: First team in standings / Podium ranking position.<br>
+        • <span style='color: #3b82f6; font-weight: bold;'>Blue</span>: Highest score in a single match (Team Result).
     </div>
     """,
     unsafe_allow_html=True
@@ -176,7 +176,7 @@ def scrivi_cella_per_gid(target_gid, cella, valore):
         worksheet.update(range_name=cella, values=[[valore]], value_input_option='USER_ENTERED')
         return True
     except Exception as e:
-        st.error(f"Errore di scrittura sul GID {target_gid} (cella {cella}): {e}")
+        st.error(f"Error writing to GID {target_gid} (cell {cella}): {e}")
         return False
 
 @st.cache_data(ttl=10)
@@ -236,7 +236,7 @@ def get_df_by_gid(target_gid):
             elif len(sheets_list) > 0:
                 return pd.read_excel(xls_data, sheet_name=0, header=None)
     except Exception as ex:
-        st.error(f"Errore lettura GID {target_gid}: {ex}")
+        st.error(f"Error reading GID {target_gid}: {ex}")
             
     return None
 
@@ -411,7 +411,7 @@ elif scelta_menu == "TEAM RESULT":
                         pos_str = podio_labels[i] if i < len(podio_labels) else f"{i+1}° Place"
                         podio_col.append(f"{pos_str}: {row['Team']} ({int(row['NumericTotal'])} pts)")
 
-                    df_giornata["Podio / Posizionamento"] = pd.Series(podio_col)
+                    df_giornata["Podium / Standing"] = pd.Series(podio_col)
                     df_giornata = df_giornata.drop(columns=["NumericTotal"])
 
                     def style_team_results(data):
@@ -432,9 +432,9 @@ elif scelta_menu == "TEAM RESULT":
                                         elif val == min_val:
                                             styles.loc[idx, col] = 'color: #ff4b4b;'
                         
-                        if "Podio / Posizionamento" in data.columns:
+                        if "Podium / Standing" in data.columns:
                             for idx in data.index:
-                                styles.loc[idx, "Podio / Posizionamento"] = 'color: #22c55e; font-weight: bold;'
+                                styles.loc[idx, "Podium / Standing"] = 'color: #22c55e; font-weight: bold;'
                                 
                         return styles
 
@@ -443,11 +443,11 @@ elif scelta_menu == "TEAM RESULT":
                     st.dataframe(df_styled, use_container_width=True, hide_index=True)
 
                 except Exception as e:
-                    st.error(f"Errore caricamento {nome_giornata}: {e}")
+                    st.error(f"Error loading {nome_giornata}: {e}")
 
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.error("Impossibile connettersi alla tab Team Result.")
+        st.error("Unable to connect to Team Result tab.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -495,7 +495,7 @@ elif scelta_menu == "PERSONAL STATS":
                             extracted_players.append(p)
                 extracted_players = list(dict.fromkeys(extracted_players))
     except Exception as e:
-        st.warning(f"Errore lettura iniziale foglio Personal Stats: {e}")
+        st.warning(f"Error reading initial Personal Stats sheet: {e}")
 
     if not extracted_players:
         extracted_players = ["No players available"]
@@ -522,7 +522,7 @@ elif scelta_menu == "PERSONAL STATS":
         scrivi_cella_per_gid(GID_PERSONAL_STATS, "D21", selected_d21_val)
         time.sleep(0.4)
 
-    with st.spinner("Aggiornamento dati in corso..."):
+    with st.spinner("Updating data..."):
         time.sleep(0.2)
 
     st.markdown("---")
@@ -591,7 +591,7 @@ elif scelta_menu == "PERSONAL STATS":
                                 "MAX DISTANCE": format_val(r_data[6] if len(r_data) > 6 else 0, is_percentage=False)
                             })
     except Exception as e:
-        st.warning(f"Errore lettura dati dashboard: {e}")
+        st.warning(f"Error reading dashboard data: {e}")
 
     st.markdown("<h4 style='color: #93c5fd; font-size: 1rem;'>MATCH SUMMARY</h4>", unsafe_allow_html=True)
     c_grid1, c_grid2, c_grid3 = st.columns(3)
