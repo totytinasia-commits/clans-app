@@ -372,12 +372,16 @@ elif scelta_menu == "TEAM RESULT":
                     match_data = {}
                     for idx, c_idx in enumerate(match_cols):
                         try:
-                            match_data[f"Game {idx+1}"] = df_team_result.iloc[r_start:r_end+1, c_idx].fillna(0).values
+                            match_data[f"Game {idx+1}"] = pd.to_numeric(
+                                df_team_result.iloc[r_start:r_end+1, c_idx], errors="coerce"
+                            ).fillna(0).values
                         except Exception:
                             match_data[f"Game {idx+1}"] = [0, 0, 0, 0]
 
                     try:
-                        totals = df_team_result.iloc[r_start:r_end+1, col_total].fillna(0).values
+                        totals = pd.to_numeric(
+                            df_team_result.iloc[r_start:r_end+1, col_total], errors="coerce"
+                        ).fillna(0).values
                     except Exception:
                         totals = [0, 0, 0, 0]
 
@@ -390,12 +394,41 @@ elif scelta_menu == "TEAM RESULT":
                     podio_col = []
                     for i, row in df_sorted.iterrows():
                         pos_str = podio_labels[i] if i < len(podio_labels) else f"{i+1}° Place"
-                        podio_col.append(f"{pos_str}: {row['Team']} ({row['NumericTotal']} pts)")
+                        podio_col.append(f"{pos_str}: {row['Team']} ({int(row['NumericTotal'])} pts)")
 
                     df_giornata["Podio / Posizionamento"] = pd.Series(podio_col)
                     df_giornata = df_giornata.drop(columns=["NumericTotal"])
 
-                    st.dataframe(df_giornata, use_container_width=True, hide_index=True)
+                    # Funzione di stile personalizzata per i punteggi (Game 1-5) e il podio
+                    def style_team_results(data):
+                        game_cols = [c for c in data.columns if c.startswith("Game ")]
+                        styles = pd.DataFrame('', index=data.index, columns=data.columns)
+                        
+                        # Evidenziazione max/min per riga nei giochi
+                        for idx, row in data[game_cols].iterrows():
+                            numeric_vals = pd.to_numeric(row, errors='coerce')
+                            if not numeric_vals.isna().all():
+                                max_val = numeric_vals.max()
+                                min_val = numeric_vals.min()
+                                
+                                for col in game_cols:
+                                    val = pd.to_numeric(data.loc[idx, col], errors='coerce')
+                                    if pd.notna(val):
+                                        if val == max_val:
+                                            styles.loc[idx, col] = 'color: #3b82f6; font-weight: bold;'  # Blu per il più alto
+                                        elif val == min_val:
+                                            styles.loc[idx, col] = 'color: #ff4b4b;'  # Rosso per il più basso
+                        
+                        # Evidenziazione in verde per la colonna del Podio / Posizionamento
+                        if "Podio / Posizionamento" in data.columns:
+                            for idx in data.index:
+                                styles.loc[idx, "Podio / Posizionamento"] = 'color: #22c55e; font-weight: bold;'
+                                
+                        return styles
+
+                    df_styled = df_giornata.style.apply(style_team_results, axis=None)
+
+                    st.dataframe(df_styled, use_container_width=True, hide_index=True)
 
                 except Exception as e:
                     st.error(f"Errore caricamento {nome_giornata}: {e}")
