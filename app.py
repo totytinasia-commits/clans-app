@@ -26,14 +26,14 @@ try:
         "https://www.googleapis.com/auth/drive"
     ]
 
-    # 4. Tenta la creazione delle credenziali (qui falliva se c'era padding o PEM errato)
+    # 4. Tenta la creazione delle credenziali
     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     st.success("Credenziali caricate con successo! La chiave è valida.")
 
-    # 5. Tenta il collegamento a gspread (sostituisci con il nome del tuo foglio o un ID di test se vuoi)
+    # 5. Tenta il collegamento a gspread
     client = gspread.authorize(creds)
     st.success("Autenticazione gspread completata con successo!")
 
 except Exception as e:
-    st.error(Annesso errore durante il test:)
+    st.error("Errore riscontrato durante il test:")
     st.exception(e)
