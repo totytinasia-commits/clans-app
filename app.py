@@ -106,14 +106,10 @@ SCOPES = [
 def ottieni_credenziali():
     creds_dict = dict(st.secrets["gcp_service_account"])
     
-    # Pulisce e formatta correttamente la chiave privata
+    # Pulisce e formatta correttamente la chiave privata evitando problemi di parsing PEM
     if "private_key" in creds_dict:
         pk = creds_dict["private_key"]
-        # Rimuove eventuali spazi bianchi superflui e sistema i newline
         pk = pk.strip()
-        if not pk.startswith("-----BEGIN PRIVATE KEY-----"):
-            # Se per caso manca l'header o è formattato male
-            pass
         creds_dict["private_key"] = pk.replace("\\n", "\n")
         
     return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
@@ -351,8 +347,6 @@ elif scelta_menu == "PERSONAL STATS":
         "Round 7": 7,
     }
     
-    inv_rounds_config = {str(v): k for k, v in rounds_config.items()}
-
     col1, col2 = st.columns(2)
 
     target_ws = None
