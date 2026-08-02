@@ -1,4 +1,5 @@
 import io
+import os
 import pandas as pd
 import requests
 import streamlit as st
@@ -6,11 +7,14 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 
+# --- PERCORSO SICURO PER L'ICONA PNG ---
+current_dir = os.path.dirname(os.path.abspath(__file__))
+logo_path = os.path.join(current_dir, "logo.png")
 
 # --- CONFIGURAZIONE DELLA PAGINA ---
 st.set_page_config(
     page_title="Clans Leagues Session 7", 
-    page_icon="logo.png",  # <-- Inserisci qui il nome del file PNG caricato su GitHub
+    page_icon=logo_path if os.path.exists(logo_path) else "🛡️", 
     layout="centered"
 )
 
@@ -310,7 +314,7 @@ elif scelta_menu == "TEAM RESULT":
 
         col_team = 4
         match_cols = [9, 14, 19, 24, 29]
-        col_total = 30
+        col_total = 30  # Colonna AE (30 in Python partendo da 0)
 
         for nome_giornata, r_start, r_end in giornate_team_config:
             with st.container():
