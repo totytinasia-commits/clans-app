@@ -97,21 +97,16 @@ GID_PERSONAL_STATS = 1111383455
 
 url_export = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
-# --- CONFIGURAZIONE GOOGLE SHEETS API & CREDENZIALI ibride (Cloud / Locale) ---
+# --- CONFIGURAZIONE GOOGLE SHEETS API & CREDENZIALI ---
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
 ]
 
 def ottieni_credenziali():
-    try:
-        if "gcp_service_account" in st.secrets:
-            creds_dict = dict(st.secrets["gcp_service_account"])
-            return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-    except Exception:
-        pass
-    
-    return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+    # Utilizza esclusivamente le credenziali dai Secrets di Streamlit Cloud
+    creds_dict = dict(st.secrets["gcp_service_account"])
+    return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
 
 def scrivi_cella_per_gid(target_gid, cella, valore):
     try:
