@@ -118,7 +118,7 @@ def scrivi_cella_per_gid(target_gid, cella, valore):
         
         worksheet = None
         for ws in sheet.worksheets():
-            if str(ws.id) == str(target_gid):
+            if str(ws.id).strip() == str(target_gid).strip():
                 worksheet = ws
                 break
         
@@ -133,10 +133,6 @@ def scrivi_cella_per_gid(target_gid, cella, valore):
 
 @st.cache_data(ttl=10)
 def get_df_by_gid(target_gid):
-    """
-    Legge direttamente i dati dal Google Sheet tramite gspread e GID, 
-    garantendo che non si dipenda dalla posizione o dall'ordine delle schede.
-    """
     try:
         creds = ottieni_credenziali()
         client = gspread.authorize(creds)
@@ -144,7 +140,7 @@ def get_df_by_gid(target_gid):
         
         worksheet = None
         for ws in sheet.worksheets():
-            if str(ws.id) == str(target_gid):
+            if str(ws.id).strip() == str(target_gid).strip():
                 worksheet = ws
                 break
         
@@ -245,8 +241,8 @@ elif scelta_menu == "TEAM RESULT":
 
     if df_team_result is not None:
         giornate_team_config = [
-            ("Day 1 - 18/07/2026", 9),   # Riga 10 su Sheets -> Indice 9
-            ("Day 2 - 25/07/2026", 18),  # Riga 19 -> Indice 18
+            ("Day 1 - 18/07/2026", 9),
+            ("Day 2 - 25/07/2026", 18),
             ("Day 3 - 01/08/2026", 27),
             ("Day 4 - 08/08/2026", 36),
             ("Day 5 - 15/08/2026", 45),
@@ -254,8 +250,6 @@ elif scelta_menu == "TEAM RESULT":
             ("Day 7 - 29/08/2026", 63),
         ]
 
-        # Colonne aggiornate (Indici Python 0-based basati su J, O, T, Y, AD):
-        # Team = E (4), Game 1 = J (9), Game 2 = O (14), Game 3 = T (19), Game 4 = Y (24), Game 5 = AD (29), Total = AH (33)
         c_team, c_g1, c_g2, c_g3, c_g4, c_g5, c_tot = 4, 9, 14, 19, 24, 29, 33
 
         for nome_giornata, start_idx in giornate_team_config:
@@ -339,7 +333,7 @@ elif scelta_menu == "PERSONAL STATS":
         creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
-        target_ws = next((ws for ws in sheet.worksheets() if str(ws.id) == str(GID_PERSONAL_STATS)), None)
+        target_ws = next((ws for ws in sheet.worksheets() if str(ws.id).strip() == str(GID_PERSONAL_STATS).strip()), None)
         
         if target_ws:
             d9_raw = target_ws.acell("D9").value
