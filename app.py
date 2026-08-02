@@ -104,16 +104,16 @@ SCOPES = [
 ]
 
 def ottieni_credenziali():
-    creds_dict = dict(st.secrets["gcp_service_account"])
-    
-    # Pulisce e formatta correttamente la chiave privata evitando problemi di parsing PEM
-    if "private_key" in creds_dict:
-        pk = creds_dict["private_key"]
-        pk = pk.strip()
-        creds_dict["private_key"] = pk.replace("\\n", "\n")
-        
-    return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
-    st.write(repr(creds_dict["private_key"][:80]))
+    creds = dict(st.secrets["gcp_service_account"])
+
+    st.write("Lunghezza chiave:", len(creds["private_key"]))
+    st.write("Inizio:", repr(creds["private_key"][:40]))
+    st.write("Fine:", repr(creds["private_key"][-40:]))
+
+    return Credentials.from_service_account_info(
+        creds,
+        scopes=SCOPES
+    )
 
 def scrivi_cella_per_gid(target_gid, cella, valore):
     try:
