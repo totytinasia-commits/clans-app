@@ -259,11 +259,11 @@ if scelta_menu == "SCHEDULE":
 
     df_schedule = pd.DataFrame(schedule_rows)
 
-    def color_past_rows(s):
-        is_past = s.name < oggi
-        return ['color: #ff4b4b' if is_past else '' for _ in s]
+    def color_past_rows(row):
+        is_past = row["_MATCH_DATE"] < oggi
+        return ['color: #ff4b4b' if is_past else '' for _ in row.index]
 
-    df_styled = df_schedule.set_index("_MATCH_DATE").style.apply(color_past_rows, axis=1).reset_index(drop=True)
+    df_styled = df_schedule.style.apply(color_past_rows, axis=1).hide(subset=["_MATCH_DATE"], axis=1)
 
     st.dataframe(df_styled, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
