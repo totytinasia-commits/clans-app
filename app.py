@@ -243,49 +243,81 @@ elif scelta_menu == "SYSTEM SCORE":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- SEZIONE: TEAM RESULT ---
+# --- SEZIONE: TEAM RESULT (Lettura diretta Gspread per GID_TEAM_RESULT) ---
 elif scelta_menu == "TEAM RESULT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📊 Team Result")
 
-    df_team_result = get_df_by_gid(GID_TEAM_RESULT)
+    ws_team = None
+    try:
+        creds = ottieni_credenziali()
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(SHEET_ID)
+        ws_team = next((ws for ws in sheet.worksheets() if str(ws.id) == str(GID_TEAM_RESULT)), None)
+    except Exception as e:
+        st.error(f"Errore connessione a Google Sheets per Team Result: {e}")
 
-    if df_team_result is not None and not df_team_result.empty:
+    if ws_team is not None:
+        # Configurazione delle righe di inizio per ciascuna giornata (E10:E13 per Day 1, righe 10-13)
+        # Distanza di blocco stimata di 9 righe tra una giornata e l'altra
         giornate_team_config = [
-            ("Day 1 - 18/07/2026", 9, 12),
-            ("Day 2 - 25/07/2026", 18, 21),
-            ("Day 3 - 01/08/2026", 27, 30),
-            ("Day 4 - 08/08/2026", 36, 39),
-            ("Day 5 - 15/08/2026", 45, 48),
-            ("Day 6 - 22/08/2026", 54, 57),
-            ("Day 7 - 29/08/2026", 63, 66),
+            ("Day 1 - 18/07/2026", 10),
+            ("Day 2 - 25/07/2026", 19),
+            ("Day 3 - 01/08/2026", 28),
+            ("Day 4 - 08/08/2026", 37),
+            ("Day 5 - 15/08/2026", 46),
+            ("Day 6 - 22/08/2026", 55),
+            ("Day 7 - 29/08/2026", 64),
         ]
 
-        col_team = 4
-        match_cols = [9, 14, 19, 24, 29]
-        col_total = 30
-
-        for nome_giornata, r_start, r_end in giornate_team_config:
+        for nome_giornata, start_row in giornate_team_config:
             with st.container():
                 st.markdown(f"<div class='day-box'>", unsafe_allow_html=True)
                 st.markdown(f"<div class='day-title'>{nome_giornata}</div>", unsafe_allow_html=True)
 
+                end_row = start_row + 3  # 4 squadre (es. righe da 10 a 13)
+                
                 try:
-                    teams = df_team_result.iloc[r_start:r_end+1, col_team].fillna("").values
-                    
-                    match_data = {}
-                    for idx, c_idx in enumerate(match_cols):
-                        try:
-                            match_data[f"Game {idx+1}"] = df_team_result.iloc[r_start:r_end+1, c_idx].fillna(0).values
-                        except Exception:
-                            match_data[f"Game {idx+1}"] = [0, 0, 0, 0]
+                    # Estrazione diretta tramite intervalli esatti richiesti:
+                    # Colonna E (Team): E10:E13
+                    teams_vals = ws_team.get(f"E{start_row}:E{end_row}")
+                    teams = [r[0] if r and len(r) > 0 else "" for r in teams_vals]
+                    while len(teams) < 4:
+                        teams.append("")
 
-                    try:
-                        totals = df_team_result.iloc[r_start:r_end+1, col_total].fillna(0).values
-                    except Exception:
-                        totals = [0, 0, 0, 0]
+                    # Game 1 (Colonna J): J10:J13
+                    g1_vals = ws_team.get(f"J{start_row}:J{end_row}")
+                    g1 = [r[0] if r and len(r) > 0 else 0 for r in g1_vals]
 
-                    df_giornata = pd.DataFrame({"Team": teams, **match_data, "Total": totals})
+                    # Game 2 (Colonna T): T10:T13
+                    g2_vals = ws_team.get(f"T{start_row}:T{end_row}")
+                    g2 = [r[0] if r and len(r) > 0 else 0 for r in g2_vals]
+
+                    # Game 3 (Colonna Y): Y10:Y13
+                    g3_vals = ws_team.get(f"Y{start_row}:Y{end_row}")
+                    g3 = [r[0] if r and len(r) > 0 else 0 for r in g3_vals]
+
+                    # Game 4 (Colonna AD): AD10:AD13
+                    g4_vals = ws_team.get(f"AD{start_row}:AD{end_row}")
+                    g4 = [r[0] if r and len(r) > 0 else 0 for r in g4_vals]
+
+                    # Game 5 (Colonna AJ): AJ10:AJ13 (o analoga colonna del quinto match)
+                    g5_vals = ws_team.get(f"AJ{start_row}:AJ{end_row}")
+                    g5 = [r[0] if r and len(r) > 0 else 0 for r in g5_vals]
+
+                    # Totale (Colonna AN): AN10:AN13
+                    tot_vals = ws_team.get(f"AN{start_row}:AN{end_row}")
+                    totals = [r[0] if r and len(r) > 0 else 0 for r in tot_vals]
+
+                    df_giornata = pd.DataFrame({
+                        "Team": teams,
+                        "Game 1": g1,
+                        "Game 2": g2,
+                        "Game 3": g3,
+                        "Game 4": g4,
+                        "Game 5": g5,
+                        "Total": totals
+                    })
                     
                     df_giornata["NumericTotal"] = pd.to_numeric(df_giornata["Total"], errors="coerce").fillna(0)
                     df_sorted = df_giornata.sort_values(by="NumericTotal", ascending=False).reset_index(drop=True)
@@ -306,7 +338,7 @@ elif scelta_menu == "TEAM RESULT":
 
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.error("Impossibile caricare i dati della tab Team Result.")
+        st.error("Impossibile caricare i dati della tab Team Result tramite GID.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
