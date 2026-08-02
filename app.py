@@ -63,6 +63,15 @@ st.markdown(
         font-weight: bold;
         color: #ffffff;
     }
+    .legend-box {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 12px 15px;
+        margin-bottom: 20px;
+        font-size: 0.85rem;
+        color: #c9d1d9;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -92,6 +101,19 @@ with col_logo2:
 
 st.markdown("---")
 
+# --- LEGENDA COLORI IN ALTO ---
+st.markdown(
+    """
+    <div class='legend-box'>
+        <strong>🎨 LEGENDA COLORI:</strong><br>
+        • <span style='color: #ff4b4b; font-weight: bold;'>Rosso</span>: Partite/giornate passate (Schedule) o Punteggio più basso nel singolo match (Team Result).<br>
+        • <span style='color: #22c55e; font-weight: bold;'>Verde</span>: Primo team in classifica / Posizionamento a podio.<br>
+        • <span style='color: #3b82f6; font-weight: bold;'>Blu</span>: Punteggio più alto nel singolo match (Team Result).
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 # --- MENU DI NAVIGAZIONE (SIDEBAR) ---
 st.sidebar.title("🧭 Navigation")
 scelta_menu = st.sidebar.radio(
@@ -120,7 +142,6 @@ SCOPES = [
 ]
 
 def ottieni_credenziali():
-    # 1. Prova da st.secrets (Streamlit Cloud)
     try:
         if "gcp_service_account" in st.secrets:
             creds_dict = dict(st.secrets["gcp_service_account"])
@@ -130,7 +151,6 @@ def ottieni_credenziali():
     except Exception:
         pass
     
-    # 2. Fallback su file locale credentials.json
     try:
         return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
     except Exception:
@@ -178,7 +198,6 @@ xls_data = carica_google_sheet_completo(url_export)
 def get_df_by_gid(target_gid):
     target_title = None
     
-    # 1. Tentativo di lettura live tramite gspread
     try:
         creds = ottieni_credenziali()
         if creds:
@@ -199,7 +218,6 @@ def get_df_by_gid(target_gid):
     except Exception:
         pass
     
-    # 2. Tentativo di recupero del nome tab se gspread ha fallito ma abbiamo l'export Excel
     if not target_title and xls_data is not None:
         try:
             creds = ottieni_credenziali()
@@ -210,7 +228,6 @@ def get_df_by_gid(target_gid):
         except Exception:
             pass
 
-    # 3. Fallback finale su Excel in memoria
     try:
         if xls_data is not None:
             sheets_list = xls_data.sheet_names
@@ -270,7 +287,6 @@ if scelta_menu == "SCHEDULE":
     st.dataframe(df_styled, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-
 # ==========================================
 # --- SEZIONE: LEADERBOARD ---
 # ==========================================
@@ -305,7 +321,6 @@ elif scelta_menu == "LEADERBOARD":
                 
                 df_day = pd.DataFrame({"Team": teams, "Score": scores})
                 
-                # Funzione per colorare in verde la prima riga (primo team)
                 def color_first_row(row):
                     if row.name == 0:
                         return ['color: #22c55e; font-weight: bold;' for _ in row.index]
@@ -359,7 +374,7 @@ elif scelta_menu == "TEAM RESULT":
 
         col_team = 4
         match_cols = [9, 14, 19, 24, 29]
-        col_total = 30  # Colonna AE (30 in Python partendo da 0)
+        col_total = 30
 
         for nome_giornata, r_start, r_end in giornate_team_config:
             with st.container():
@@ -399,12 +414,10 @@ elif scelta_menu == "TEAM RESULT":
                     df_giornata["Podio / Posizionamento"] = pd.Series(podio_col)
                     df_giornata = df_giornata.drop(columns=["NumericTotal"])
 
-                    # Funzione di stile personalizzata per i punteggi (Game 1-5) e il podio
                     def style_team_results(data):
                         game_cols = [c for c in data.columns if c.startswith("Game ")]
                         styles = pd.DataFrame('', index=data.index, columns=data.columns)
                         
-                        # Evidenziazione max/min per riga nei giochi
                         for idx, row in data[game_cols].iterrows():
                             numeric_vals = pd.to_numeric(row, errors='coerce')
                             if not numeric_vals.isna().all():
@@ -415,11 +428,10 @@ elif scelta_menu == "TEAM RESULT":
                                     val = pd.to_numeric(data.loc[idx, col], errors='coerce')
                                     if pd.notna(val):
                                         if val == max_val:
-                                            styles.loc[idx, col] = 'color: #3b82f6; font-weight: bold;'  # Blu per il più alto
+                                            styles.loc[idx, col] = 'color: #3b82f6; font-weight: bold;'
                                         elif val == min_val:
-                                            styles.loc[idx, col] = 'color: #ff4b4b;'  # Rosso per il più basso
+                                            styles.loc[idx, col] = 'color: #ff4b4b;'
                         
-                        # Evidenziazione in verde per la colonna del Podio / Posizionamento
                         if "Podio / Posizionamento" in data.columns:
                             for idx in data.index:
                                 styles.loc[idx, "Podio / Posizionamento"] = 'color: #22c55e; font-weight: bold;'
