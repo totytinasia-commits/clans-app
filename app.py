@@ -307,7 +307,7 @@ elif scelta_menu == "TEAM RESULT":
 
         col_team = 4
         match_cols = [9, 14, 19, 24, 29]
-        col_total = 33
+        col_total = 30
 
         for nome_giornata, r_start, r_end in giornate_team_config:
             with st.container():
