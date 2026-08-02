@@ -113,6 +113,7 @@ def ottieni_credenziali():
         creds_dict["private_key"] = pk.replace("\\n", "\n")
         
     return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    st.write(repr(creds_dict["private_key"][:80]))
 
 def scrivi_cella_per_gid(target_gid, cella, valore):
     try:
