@@ -148,48 +148,48 @@ def carica_google_sheet_completo(url):
         xls = pd.ExcelFile(io.BytesIO(content_bytes))
         return xls
     except Exception as e:
-        st.error(f"Errore di caricamento del Google Sheet: {e}")
         return None
 
 xls_data = carica_google_sheet_completo(url_export)
 
 def get_df_by_gid(target_gid):
     """
-    Legge il foglio tramite API di Google per mappare il GID al nome della tab,
-    quindi estrae i dati tramite xls_data (esportazione Excel) se disponibile,
-    garantendo stabilità e velocità. Se l'export fallisce, usa gspread come fallback.
+    Legge il foglio in tempo reale direttamente tramite l'API di gspread per garantire
+    che le formule siano calcolate correttamente e fresche, usando l'export Excel come fallback.
     """
     try:
         creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
         
-        target_title = None
         target_ws = None
         for ws in sheet.worksheets():
             if str(ws.id).strip() == str(target_gid).strip():
-                target_title = ws.title
                 target_ws = ws
                 break
         
-        # Tentativo 1: Lettura tramite Excel export (più affidabile per grandi tabelle)
-        if xls_data is not None and target_title and target_title in xls_data.sheet_names:
-            return pd.read_excel(xls_data, sheet_name=target_title, header=None)
-        
-        # Tentativo 2: Fallback diretto con gspread se il foglio non è nell'export Excel
         if target_ws:
             data = target_ws.get_all_values()
-            return pd.DataFrame(data)
-            
-    except Exception as e:
-        st.error(f"Errore lettura GID {target_gid}: {e}")
+            if data:
+                return pd.DataFrame(data)
+                
+    except Exception:
+        pass
     
-    # Ultimo fallback sul primo foglio in caso di errore generale
-    if xls_data is not None:
-        try:
-            return pd.read_excel(xls_data, sheet_name=0, header=None)
-        except Exception:
-            pass
+    # Fallback su Excel in memoria se l'API dovesse fallire temporaneamente
+    try:
+        if xls_data is not None:
+            creds = ottieni_credenziali()
+            client = gspread.authorize(creds)
+            sheet = client.open_by_key(SHEET_ID)
+            target_title = next((ws.title for ws in sheet.worksheets() if str(ws.id).strip() == str(target_gid).strip()), None)
+            
+            if target_title and target_title in xls_data.sheet_names:
+                return pd.read_excel(xls_data, sheet_name=target_title, header=None)
+            elif len(xls_data.sheet_names) > 0:
+                return pd.read_excel(xls_data, sheet_name=0, header=None)
+    except Exception as ex:
+        st.error(f"Errore lettura GID {target_gid}: {ex}")
             
     return None
 
@@ -403,10 +403,12 @@ elif scelta_menu == "PERSONAL STATS":
         selected_d9_val = rounds_config[selected_round_label]
         if str(selected_d9_val).lower() != str(current_d9_val).lower():
             scrivi_cella_per_gid(GID_PERSONAL_STATS, "D9", selected_d9_val)
+            time.sleep(0.4) # Sincronizzazione per dare tempo al foglio di ricalcolare le formule
 
     with col2:
         selected_d21_val = st.selectbox("Select Player", extracted_players)
         scrivi_cella_per_gid(GID_PERSONAL_STATS, "D21", selected_d21_val)
+        time.sleep(0.4) # Sincronizzazione per dare tempo al foglio di ricalcolare le formule
 
     with st.spinner("Aggiornamento dati in corso..."):
         time.sleep(0.2)
