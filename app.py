@@ -249,26 +249,26 @@ if scelta_menu == "SCHEDULE":
         date_str = f"{item['DATE']} 2026"
         match_date = datetime.strptime(date_str, "%b %d %Y").replace(tzinfo=timezone(timedelta(hours=2)))
         
-        # Manteniamo i valori puliti senza markdown o sbarramenti
         schedule_rows.append({
             "WEEK": item["WEEK"],
             "DATE": item["DATE"],
             "TIME": item["TIME"],
             "MATCHUPS": item["MATCHUPS"],
-            "_MATCH_DATE": match_date  # Colonna di servizio per il confronto
+            "_MATCH_DATE": match_date
         })
 
     df_schedule = pd.DataFrame(schedule_rows)
 
-    def color_past_rows(row):
-        is_past = row["_MATCH_DATE"] < oggi
-        return ['color: #ff4b4b' if is_past else '' for _ in row.index]
+    def color_past_rows(s):
+        is_past = s.name < oggi
+        return ['color: #ff4b4b' if is_past else '' for _ in s]
 
-    # Applichiamo lo stile colorando la riga e rimuoviamo la colonna di servizio dalla vista
-    df_styled = df_schedule.drop(columns=["_MATCH_DATE"]).style.apply(color_past_rows, axis=1)
+    df_styled = df_schedule.set_index("_MATCH_DATE").style.apply(color_past_rows, axis=1).reset_index(drop=True)
 
     st.dataframe(df_styled, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
+
+
 # ==========================================
 # --- SEZIONE: LEADERBOARD ---
 # ==========================================
