@@ -97,15 +97,27 @@ GID_PERSONAL_STATS = 1111383455
 
 url_export = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
-# --- CONFIGURAZIONE GOOGLE SHEETS API ---
+# --- CONFIGURAZIONE GOOGLE SHEETS API & CREDENZIALI ibride (Cloud / Locale) ---
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
 ]
 
+def ottieni_credenziali():
+    try:
+        # Se siamo su Streamlit Cloud e i Secrets sono configurati
+        if "gcp_service_account" in st.secrets:
+            creds_dict = dict(st.secrets["gcp_service_account"])
+            return Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    except Exception:
+        pass
+    
+    # Altrimenti prova a caricare il file locale (per quando sei sul tuo PC)
+    return Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+
 def scrivi_cella_per_gid(target_gid, cella, valore):
     try:
-        creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+        creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
         
@@ -145,7 +157,7 @@ def get_df_by_gid(target_gid):
     if xls_data is None:
         return None
     try:
-        creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+        creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
         
@@ -317,7 +329,6 @@ elif scelta_menu == "PERSONAL STATS":
         "Round 7": 7,
     }
     
-    # Inverso per mappare il valore del foglio (es. 1, 2, "ALL") alla label del selectbox
     inv_rounds_config = {str(v): k for k, v in rounds_config.items()}
 
     col1, col2 = st.columns(2)
@@ -327,18 +338,16 @@ elif scelta_menu == "PERSONAL STATS":
     extracted_players = []
 
     try:
-        creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
+        creds = ottieni_credenziali()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(SHEET_ID)
         target_ws = next((ws for ws in sheet.worksheets() if str(ws.id) == str(GID_PERSONAL_STATS)), None)
         
         if target_ws:
-            # Legge il round attuale dalla cella D9 senza sovrascriverlo all'ingresso
             d9_raw = target_ws.acell("D9").value
             if d9_raw is not None and str(d9_raw).strip() != "":
                 current_d9_val = str(d9_raw).strip()
             
-            # Legge la lista dei giocatori da C12:C60
             col_c_values = target_ws.get("C12:C60")
             for row in col_c_values:
                 if row and len(row) > 0:
@@ -352,7 +361,6 @@ elif scelta_menu == "PERSONAL STATS":
     if not extracted_players:
         extracted_players = ["No players available"]
 
-    # Trova la label corrispondente al valore attuale letto da D9
     default_round_label = "ALL"
     for k, v in rounds_config.items():
         if str(v).lower() == current_d9_val.lower():
@@ -365,7 +373,6 @@ elif scelta_menu == "PERSONAL STATS":
             list(rounds_config.keys()), 
             index=list(rounds_config.keys()).index(default_round_label) if default_round_label in rounds_config else 0
         )
-        # Scrive sul foglio solo se l'utente cambia esplicitamente il valore nel selectbox rispetto a quello letto
         selected_d9_val = rounds_config[selected_round_label]
         if str(selected_d9_val).lower() != str(current_d9_val).lower():
             scrivi_cella_per_gid(GID_PERSONAL_STATS, "D9", selected_d9_val)
@@ -427,7 +434,6 @@ elif scelta_menu == "PERSONAL STATS":
                     deadliest_d = format_val(h19_l20[1][3] if len(h19_l20[1]) > 3 else 0)
                     deadliest_a = format_val(h19_l20[1][4] if len(h19_l20[1]) > 4 else 0, is_percentage=True)
 
-            # --- LETTURA PUNTUALE DI TUTTE LE ARMI DA F27 A L67 (7 CAMPI) ---
             weapons_raw = target_ws.get("F27:L67")
             if weapons_raw:
                 for r_data in weapons_raw:
@@ -446,7 +452,6 @@ elif scelta_menu == "PERSONAL STATS":
     except Exception as e:
         st.warning(f"Errore lettura dati dashboard: {e}")
 
-    # --- GRIGLIA STATISTICHE PRINCIPALI ---
     st.markdown("<h4 style='color: #93c5fd; font-size: 1rem;'>MATCH SUMMARY</h4>", unsafe_allow_html=True)
     c_grid1, c_grid2, c_grid3 = st.columns(3)
     
@@ -464,7 +469,6 @@ elif scelta_menu == "PERSONAL STATS":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- DEADLIEST WEAPON ---
     st.markdown("<h4 style='color: #93c5fd; font-size: 1rem;'>DEADLIEST WEAPON</h4>", unsafe_allow_html=True)
     dw_col1, dw_col2, dw_col3 = st.columns(3)
     with dw_col1:
@@ -476,7 +480,6 @@ elif scelta_menu == "PERSONAL STATS":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- TABELLA WEAPON PERFORMANCE (TUTTE LE ARMI DA F27:L67) ---
     st.markdown("<h4 style='color: #93c5fd; text-align: center;'>WEAPON PERFORMANCE</h4>", unsafe_allow_html=True)
     
     if weapon_rows_data:
