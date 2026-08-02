@@ -255,7 +255,7 @@ elif scelta_menu == "LEADERBOARD":
 
     if df_leaderboard is not None:
         giornate_config = [
-            ("Day 1 - 19/07/2026", 2, 3, 12, 15),
+            ("Day 1 - 18/07/2026", 2, 3, 12, 15),
             ("Day 2 - 25/07/2026", 5, 6, 12, 15),
             ("Day 3 - 01/08/2026", 8, 9, 12, 15),
             ("Day 4 - 08/08/2026", 2, 3, 22, 25),
