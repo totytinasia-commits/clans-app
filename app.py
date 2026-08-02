@@ -68,18 +68,27 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- HEADER ---
+# --- HEADER CON LOGO GRAFICO ---
 col_logo1, col_title, col_logo2 = st.columns([1, 3, 1])
+
 with col_logo1:
-    st.markdown("<h1 style='text-align: center; margin: 0;'>🛡️</h1>", unsafe_allow_html=True)
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=70)
+    else:
+        st.markdown("<h1 style='text-align: center; margin: 0;'>🛡️</h1>", unsafe_allow_html=True)
+
 with col_title:
     st.markdown(
         "<h2 style='text-align: center; margin: 0;'>Clans Leagues Session 7</h2>"
         "<p style='text-align: center; color: #ff4b4b; font-weight: bold; margin-top: 5px;'>EU ELITE</p>",
         unsafe_allow_html=True,
     )
+
 with col_logo2:
-    st.markdown("<h1 style='text-align: center; margin: 0;'>⚔️</h1>", unsafe_allow_html=True)
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=70)
+    else:
+        st.markdown("<h1 style='text-align: center; margin: 0;'>⚔️</h1>", unsafe_allow_html=True)
 
 st.markdown("---")
 
