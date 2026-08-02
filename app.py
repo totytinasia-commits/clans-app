@@ -1,6 +1,5 @@
 import streamlit as st
 import json
-import tempfile
 from google.oauth2.service_account import Credentials
 import gspread
 
@@ -11,29 +10,24 @@ try:
         st.error("Sezione [gcp_service_account] non trovata nei secrets di Streamlit!")
         st.stop()
 
-    # Legge il dizionario dai secrets di Streamlit
+    # Legge il dizionario dai secrets
     creds_dict = dict(st.secrets["gcp_service_account"])
     
-    # Corregge eventuali newline letterali se presenti
+    # Converte i newline letterali in veri newline di sistema
     if "private_key" in creds_dict:
         creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
 
     st.write("Email del bot:", creds_dict.get("client_email"))
     st.write("Lunghezza chiave privata:", len(creds_dict["private_key"]))
 
-    # Scrive le credenziali in un file JSON temporaneo per bypassare il controllo di padding in memoria
-    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as temp:
-        json.dump(creds_dict, temp)
-        temp_path = temp.name
-
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
 
-    # Caricamento tramite file temporaneo (soluzione blindata)
-    creds = Credentials.from_service_account_file(temp_path, scopes=scopes)
-    st.success("Credenziali caricate con successo tramite file temporaneo!")
+    # Caricamento diretto delle credenziali
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    st.success("Credenziali caricate con successo!")
 
     # Connessione a Google Sheets
     client = gspread.authorize(creds)
