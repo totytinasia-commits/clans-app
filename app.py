@@ -101,20 +101,7 @@ with col_logo2:
 
 st.markdown("---")
 
-# --- LEGENDA COLORI IN ALTO (ENGLISH) ---
-st.markdown(
-    """
-    <div class='legend-box'>
-        <strong>🎨 COLOR LEGEND:</strong><br>
-        • <span style='color: #ff4b4b; font-weight: bold;'>Red</span>: Past matches/days (Schedule) or Lowest score in a single match (Team Result).<br>
-        • <span style='color: #22c55e; font-weight: bold;'>Green</span>: First team in standings / Podium ranking position.<br>
-        • <span style='color: #3b82f6; font-weight: bold;'>Blue</span>: Highest score in a single match (Team Result).
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# --- MENU DI NAVIGAZIONE (SIDEBAR) ---
+# --- MENU DI NAVIGAZIONE E PULSANTE LATERALE (SIDEBAR) ---
 st.sidebar.title("🧭 Navigation")
 scelta_menu = st.sidebar.radio(
     "Select Section",
@@ -126,6 +113,14 @@ scelta_menu = st.sidebar.radio(
         "PERSONAL STATS",
     ],
 )
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🔄 Data Management")
+if st.sidebar.button("Recupero Totale Punteggio", use_container_width=True):
+    # Pulisce la cache per forzare il ricaricamento dei dati aggiornati da Google Sheets
+    st.cache_data.clear()
+    st.sidebar.success("Dati ricaricati con successo!")
+    st.rerun()
 
 # --- VARIABILI GLOBALI E GID ---
 SHEET_ID = "1rDMEgmeHJlO0sBz-U4szt_vGAfgBbu1wDfv3yAlyCUU"
@@ -358,6 +353,19 @@ elif scelta_menu == "SYSTEM SCORE":
 elif scelta_menu == "TEAM RESULT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📊 Team Result")
+
+    # --- LEGENDA COLORI SOLO IN TEAM RESULT ---
+    st.markdown(
+        """
+        <div class='legend-box'>
+            <strong>🎨 COLOR LEGEND:</strong><br>
+            • <span style='color: #22c55e; font-weight: bold;'>Green</span>: Podium / Standing ranking position.<br>
+            • <span style='color: #3b82f6; font-weight: bold;'>Blue</span>: Highest score in a single match.<br>
+            • <span style='color: #ff4b4b; font-weight: bold;'>Red</span>: Lowest score in a single match.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     df_team_result = get_df_by_gid(GID_TEAM_RESULT)
 
