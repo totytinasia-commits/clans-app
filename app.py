@@ -247,7 +247,7 @@ if scelta_menu == "SCHEDULE":
 
     from datetime import datetime, timezone, timedelta
 
-    oggi = datetime(2026, 8, 2, tzinfo=timezone(timedelta(hours=2)))
+    oggi = datetime(2026, 8, 3, tzinfo=timezone(timedelta(hours=2)))
 
     is_past_list = []
     cleaned_rows = []
@@ -652,5 +652,28 @@ elif scelta_menu == "PERSONAL STATS":
 elif scelta_menu == "TOTAL POINT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
     st.markdown("### 📈 Total Point Summary")
-    st.info("Sezione dedicata al riepilogo totale dei punteggi.")
+
+    df_leaderboard_tp = get_df_by_gid(GID_LEADERBOARD)
+
+    if df_leaderboard_tp is not None:
+        try:
+            # F33:F39 (Colonna F indice 5, righe 33-39 indice 32-39)
+            teams_tp = df_leaderboard_tp.iloc[32:39, 5].fillna("").tolist()
+            # G33:G39 (Colonna G indice 6)
+            points_tp = df_leaderboard_tp.iloc[32:39, 6].fillna(0).tolist()
+            # H33:H39 (Colonna H indice 7)
+            rounds_tp = df_leaderboard_tp.iloc[32:39, 7].fillna(0).tolist()
+
+            df_total_point = pd.DataFrame({
+                "TEAM": teams_tp,
+                "POINT": points_tp,
+                "ROUNDS PLAYED": rounds_tp
+            })
+
+            st.dataframe(df_total_point, use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"Error extracting Total Point data from cells F33:H39: {e}")
+    else:
+        st.error("Unable to connect to Leaderboard tab for Total Point.")
+
     st.markdown("</div>", unsafe_allow_html=True)
