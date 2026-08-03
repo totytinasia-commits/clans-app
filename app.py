@@ -116,7 +116,7 @@ if "scelta_menu" not in st.session_state:
 sections = [
     "SCHEDULE MACH",
     "LEADER BOARD",
-    "TOTAL POINT",
+    "TOTAL TOURNAMENT POINT",
     "SYSTEM SCORE",
     "TEAM MACH RESULT",
     "PERSONAL STATS",
