@@ -473,6 +473,7 @@ elif scelta_menu == "PERSONAL STATS":
 
     target_ws = None
     current_d9_val = "ALL"
+    current_d21_val = ""
     extracted_players = []
 
     try:
@@ -483,10 +484,17 @@ elif scelta_menu == "PERSONAL STATS":
             target_ws = next((ws for ws in sheet.worksheets() if str(ws.id).strip() == str(GID_PERSONAL_STATS).strip()), None)
             
             if target_ws:
+                # Leggi D9 (Round)
                 d9_raw = target_ws.acell("D9").value
                 if d9_raw is not None and str(d9_raw).strip() != "":
                     current_d9_val = str(d9_raw).strip()
                 
+                # Leggi D21 (Player attuale)
+                d21_raw = target_ws.acell("D21").value
+                if d21_raw is not None and str(d21_raw).strip() != "":
+                    current_d21_val = str(d21_raw).strip()
+                
+                # Estrai la lista dei giocatori da C12:C60
                 col_c_values = target_ws.get("C12:C60")
                 for row in col_c_values:
                     if row and len(row) > 0:
@@ -500,9 +508,10 @@ elif scelta_menu == "PERSONAL STATS":
     if not extracted_players:
         extracted_players = ["No players available"]
 
+    # Trova la label corrispondente al valore letto in D9
     default_round_label = "ALL"
     for k, v in rounds_config.items():
-        if str(v).lower() == current_d9_val.lower():
+        if str(v).strip().lower() == str(current_d9_val).strip().lower():
             default_round_label = k
             break
 
@@ -513,14 +522,24 @@ elif scelta_menu == "PERSONAL STATS":
             index=list(rounds_config.keys()).index(default_round_label) if default_round_label in rounds_config else 0
         )
         selected_d9_val = rounds_config[selected_round_label]
-        if str(selected_d9_val).lower() != str(current_d9_val).lower():
+        
+        # Scrivi su Google Sheets solo se l'utente cambia valore dall'interfaccia
+        if str(selected_d9_val).strip().lower() != str(current_d9_val).strip().lower():
             scrivi_cella_per_gid(GID_PERSONAL_STATS, "D9", selected_d9_val)
             time.sleep(0.4)
 
     with col2:
-        selected_d21_val = st.selectbox("Select Player", extracted_players)
-        scrivi_cella_per_gid(GID_PERSONAL_STATS, "D21", selected_d21_val)
-        time.sleep(0.4)
+        # Trova l'indice del giocatore salvato in D21
+        player_index = 0
+        if current_d21_val in extracted_players:
+            player_index = extracted_players.index(current_d21_val)
+
+        selected_d21_val = st.selectbox("Select Player", extracted_players, index=player_index)
+        
+        # Scrivi su Google Sheets solo se l'utente cambia valore dall'interfaccia
+        if str(selected_d21_val).strip().lower() != str(current_d21_val).strip().lower():
+            scrivi_cella_per_gid(GID_PERSONAL_STATS, "D21", selected_d21_val)
+            time.sleep(0.4)
 
     with st.spinner("Updating data..."):
         time.sleep(0.2)
