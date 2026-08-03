@@ -72,6 +72,13 @@ st.markdown(
         font-size: 0.85rem;
         color: #c9d1d9;
     }
+    /* Stile perforato/personalizzato per i pulsanti della sidebar */
+    div.stButton > button {
+        width: 100%;
+        border-radius: 6px;
+        margin-bottom: 5px;
+        font-weight: 600;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -101,19 +108,31 @@ with col_logo2:
 
 st.markdown("---")
 
-# --- MENU DI NAVIGAZIONE (SIDEBAR) ---
+# --- GESTIONE STATO MENU CON PULSANTI ---
+if "scelta_menu" not in st.session_state:
+    st.session_state.scelta_menu = "SCHEDULE"
+
 st.sidebar.title("🧭 Navigation")
-scelta_menu = st.sidebar.radio(
-    "Select Section",
-    [
-        "SCHEDULE",
-        "LEADERBOARD",
-        "SYSTEM SCORE",
-        "TEAM RESULT",
-        "PERSONAL STATS",
-        "TOTAL POINT",
-    ],
-)
+
+sections = [
+    "SCHEDULE",
+    "LEADERBOARD",
+    "TOTAL POINT",
+    "SYSTEM SCORE",
+    "TEAM RESULT",
+    "PERSONAL STATS",
+]
+
+for sec in sections:
+    # Evidenzia visivamente il pulsante della sezione attiva
+    is_active = st.session_state.scelta_menu == sec
+    btn_type = "primary" if is_active else "secondary"
+    
+    if st.sidebar.button(sec, type=btn_type, key=f"btn_{sec}"):
+        st.session_state.scelta_menu = sec
+        st.rerun()
+
+scelta_menu = st.session_state.scelta_menu
 
 # --- VARIABILI GLOBALI E GID ---
 SHEET_ID = "1rDMEgmeHJlO0sBz-U4szt_vGAfgBbu1wDfv3yAlyCUU"
@@ -320,6 +339,38 @@ elif scelta_menu == "LEADERBOARD":
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.error("Unable to read Leaderboard tab.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ==========================================
+# --- SEZIONE: TOTAL POINT ---
+# ==========================================
+elif scelta_menu == "TOTAL POINT":
+    st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
+    st.markdown("### 📈 Total Point Summary")
+
+    df_leaderboard_tp = get_df_by_gid(GID_LEADERBOARD)
+
+    if df_leaderboard_tp is not None:
+        try:
+            # F33:F39 (Colonna F indice 5, righe 33-39 indice 32-39)
+            teams_tp = df_leaderboard_tp.iloc[32:39, 5].fillna("").tolist()
+            # G33:G39 (Colonna G indice 6)
+            points_tp = df_leaderboard_tp.iloc[32:39, 6].fillna(0).tolist()
+            # H33:H39 (Colonna H indice 7)
+            rounds_tp = df_leaderboard_tp.iloc[32:39, 7].fillna(0).tolist()
+
+            df_total_point = pd.DataFrame({
+                "TEAM": teams_tp,
+                "POINT": points_tp,
+                "ROUNDS PLAYED": rounds_tp
+            })
+
+            st.dataframe(df_total_point, use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"Error extracting Total Point data from cells F33:H39: {e}")
+    else:
+        st.error("Unable to connect to Leaderboard tab for Total Point.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -643,37 +694,5 @@ elif scelta_menu == "PERSONAL STATS":
         df_weapons_final = pd.DataFrame(columns=["WEAPON", "TOT SHOTS", "SHOT HIT", "ACC%", "DMG", "HEADSHOT", "MAX DISTANCE"])
 
     st.dataframe(df_weapons_final, use_container_width=True, hide_index=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# ==========================================
-# --- SEZIONE: TOTAL POINT ---
-# ==========================================
-elif scelta_menu == "TOTAL POINT":
-    st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
-    st.markdown("### 📈 Total Point Summary")
-
-    df_leaderboard_tp = get_df_by_gid(GID_LEADERBOARD)
-
-    if df_leaderboard_tp is not None:
-        try:
-            # F33:F39 (Colonna F indice 5, righe 33-39 indice 32-39)
-            teams_tp = df_leaderboard_tp.iloc[32:39, 5].fillna("").tolist()
-            # G33:G39 (Colonna G indice 6)
-            points_tp = df_leaderboard_tp.iloc[32:39, 6].fillna(0).tolist()
-            # H33:H39 (Colonna H indice 7)
-            rounds_tp = df_leaderboard_tp.iloc[32:39, 7].fillna(0).tolist()
-
-            df_total_point = pd.DataFrame({
-                "TEAM": teams_tp,
-                "POINT": points_tp,
-                "ROUNDS PLAYED": rounds_tp
-            })
-
-            st.dataframe(df_total_point, use_container_width=True, hide_index=True)
-        except Exception as e:
-            st.error(f"Error extracting Total Point data from cells F33:H39: {e}")
-    else:
-        st.error("Unable to connect to Leaderboard tab for Total Point.")
 
     st.markdown("</div>", unsafe_allow_html=True)
