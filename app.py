@@ -101,7 +101,7 @@ with col_logo2:
 
 st.markdown("---")
 
-# --- MENU DI NAVIGAZIONE E PULSANTE LATERALE (SIDEBAR) ---
+# --- MENU DI NAVIGAZIONE (SIDEBAR) ---
 st.sidebar.title("🧭 Navigation")
 scelta_menu = st.sidebar.radio(
     "Select Section",
@@ -111,16 +111,9 @@ scelta_menu = st.sidebar.radio(
         "SYSTEM SCORE",
         "TEAM RESULT",
         "PERSONAL STATS",
+        "TOTAL POINT",
     ],
 )
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🔄 Data Management")
-if st.sidebar.button("Recupero Totale Punteggio", use_container_width=True):
-    # Pulisce la cache per forzare il ricaricamento dei dati aggiornati da Google Sheets
-    st.cache_data.clear()
-    st.sidebar.success("Dati ricaricati con successo!")
-    st.rerun()
 
 # --- VARIABILI GLOBALI E GID ---
 SHEET_ID = "1rDMEgmeHJlO0sBz-U4szt_vGAfgBbu1wDfv3yAlyCUU"
@@ -651,4 +644,13 @@ elif scelta_menu == "PERSONAL STATS":
 
     st.dataframe(df_weapons_final, use_container_width=True, hide_index=True)
 
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ==========================================
+# --- SEZIONE: TOTAL POINT ---
+# ==========================================
+elif scelta_menu == "TOTAL POINT":
+    st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
+    st.markdown("### 📈 Total Point Summary")
+    st.info("Sezione dedicata al riepilogo totale dei punteggi.")
     st.markdown("</div>", unsafe_allow_html=True)
