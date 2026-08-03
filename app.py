@@ -114,11 +114,11 @@ if "scelta_menu" not in st.session_state:
     st.session_state.scelta_menu = "SCHEDULE"
 
 sections = [
-    "SCHEDULE",
-    "LEADERBOARD",
+    "SCHEDULE MACH",
+    "LEADER BOARD",
     "TOTAL POINT",
     "SYSTEM SCORE",
-    "TEAM RESULT",
+    "TEAM MACH RESULT",
     "PERSONAL STATS",
 ]
 
