@@ -79,6 +79,7 @@ st.markdown(
         font-weight: 600;
         padding-left: 0.5rem;
         padding-right: 0.5rem;
+        font-size: 0.8rem;
     }
     </style>
     """,
@@ -109,9 +110,9 @@ with col_logo2:
 
 st.markdown("---")
 
-# --- GESTIONE STATO MENU CON PULSANTI IN ALTO ---
+# --- GESTIONE STATO MENU CON NUOVI NOMI ---
 if "scelta_menu" not in st.session_state:
-    st.session_state.scelta_menu = "SCHEDULE"
+    st.session_state.scelta_menu = "SCHEDULE MACH"
 
 sections = [
     "SCHEDULE MACH",
@@ -252,11 +253,11 @@ def get_df_by_gid(target_gid):
     return None
 
 # ==========================================
-# --- SEZIONE: SCHEDULE ---
+# --- SEZIONE: SCHEDULE MACH ---
 # ==========================================
-if scelta_menu == "SCHEDULE":
+if scelta_menu == "SCHEDULE MACH":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
-    st.markdown("### 📅 Schedule — EU ELITE\n<p style='color: #888; font-size: 0.9rem;'>All times EST</p>", unsafe_allow_html=True)
+    st.markdown("### 📅 Schedule Mach — EU ELITE\n<p style='color: #888; font-size: 0.9rem;'>All times EST</p>", unsafe_allow_html=True)
 
     schedule_data = [
         {"WEEK": "WEEK 1", "DATE": "JUL 18", "TIME": "3PM", "MATCHUPS": "NRG • HTTA • POTR • ARES"},
@@ -299,11 +300,11 @@ if scelta_menu == "SCHEDULE":
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# --- SEZIONE: LEADERBOARD ---
+# --- SEZIONE: LEADER BOARD ---
 # ==========================================
-elif scelta_menu == "LEADERBOARD":
+elif scelta_menu == "LEADER BOARD":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
-    st.markdown("### 🏆 Leaderboard & Match Results - EU ELITE")
+    st.markdown("### 🏆 Leader Board & Match Results - EU ELITE")
 
     df_leaderboard = get_df_by_gid(GID_LEADERBOARD)
 
@@ -342,26 +343,23 @@ elif scelta_menu == "LEADERBOARD":
                 st.dataframe(df_day_styled, use_container_width=True, hide_index=True)
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.error("Unable to read Leaderboard tab.")
+        st.error("Unable to read Leader Board tab.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# --- SEZIONE: TOTAL POINT ---
+# --- SEZIONE: TOTAL POINT TOURNAMENT ---
 # ==========================================
-elif scelta_menu == "TOTAL POINT":
+elif scelta_menu == "TOTAL POINT TOURNAMENT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
-    st.markdown("### 📈 Total Point Summary")
+    st.markdown("### 📈 Total Point Tournament Summary")
 
     df_leaderboard_tp = get_df_by_gid(GID_LEADERBOARD)
 
     if df_leaderboard_tp is not None:
         try:
-            # F33:F39 (Colonna F indice 5, righe 33-39 indice 32-39)
             teams_tp = df_leaderboard_tp.iloc[32:39, 5].fillna("").tolist()
-            # G33:G39 (Colonna G indice 6)
             points_tp = df_leaderboard_tp.iloc[32:39, 6].fillna(0).tolist()
-            # H33:H39 (Colonna H indice 7)
             rounds_tp = df_leaderboard_tp.iloc[32:39, 7].fillna(0).tolist()
 
             df_total_point = pd.DataFrame({
@@ -372,9 +370,9 @@ elif scelta_menu == "TOTAL POINT":
 
             st.dataframe(df_total_point, use_container_width=True, hide_index=True)
         except Exception as e:
-            st.error(f"Error extracting Total Point data from cells F33:H39: {e}")
+            st.error(f"Error extracting Total Point Tournament data from cells F33:H39: {e}")
     else:
-        st.error("Unable to connect to Leaderboard tab for Total Point.")
+        st.error("Unable to connect to Leader Board tab for Total Point Tournament.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -396,13 +394,12 @@ elif scelta_menu == "SYSTEM SCORE":
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# --- SEZIONE: TEAM RESULT ---
+# --- SEZIONE: TEAM MACH RESULT ---
 # ==========================================
-elif scelta_menu == "TEAM RESULT":
+elif scelta_menu == "TEAM MACH RESULT":
     st.markdown("<div style='background-color: #0e1117; border: 2px solid #262730; border-radius: 12px; padding: 20px;'>", unsafe_allow_html=True)
-    st.markdown("### 📊 Team Result")
+    st.markdown("### 📊 Team Mach Result")
 
-    # --- LEGENDA COLORI SOLO IN TEAM RESULT ---
     st.markdown(
         """
         <div class='legend-box'>
@@ -503,7 +500,7 @@ elif scelta_menu == "TEAM RESULT":
 
                 st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.error("Unable to connect to Team Result tab.")
+        st.error("Unable to connect to Team Mach Result tab.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
