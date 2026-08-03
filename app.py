@@ -72,12 +72,13 @@ st.markdown(
         font-size: 0.85rem;
         color: #c9d1d9;
     }
-    /* Stile perforato/personalizzato per i pulsanti della sidebar */
+    /* Adatta i pulsanti orizzontali in alto */
     div.stButton > button {
         width: 100%;
         border-radius: 6px;
-        margin-bottom: 5px;
         font-weight: 600;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
     }
     </style>
     """,
@@ -108,11 +109,9 @@ with col_logo2:
 
 st.markdown("---")
 
-# --- GESTIONE STATO MENU CON PULSANTI ---
+# --- GESTIONE STATO MENU CON PULSANTI IN ALTO ---
 if "scelta_menu" not in st.session_state:
     st.session_state.scelta_menu = "SCHEDULE"
-
-st.sidebar.title("🧭 Navigation")
 
 sections = [
     "SCHEDULE",
@@ -123,14 +122,19 @@ sections = [
     "PERSONAL STATS",
 ]
 
-for sec in sections:
-    # Evidenzia visivamente il pulsante della sezione attiva
-    is_active = st.session_state.scelta_menu == sec
-    btn_type = "primary" if is_active else "secondary"
-    
-    if st.sidebar.button(sec, type=btn_type, key=f"btn_{sec}"):
-        st.session_state.scelta_menu = sec
-        st.rerun()
+# Creiamo colonne flessibili in alto per i pulsanti
+cols = st.columns(len(sections))
+
+for idx, sec in enumerate(sections):
+    with cols[idx]:
+        is_active = st.session_state.scelta_menu == sec
+        btn_type = "primary" if is_active else "secondary"
+        
+        if st.button(sec, type=btn_type, key=f"btn_{sec}"):
+            st.session_state.scelta_menu = sec
+            st.rerun()
+
+st.markdown("---")
 
 scelta_menu = st.session_state.scelta_menu
 
