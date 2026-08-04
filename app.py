@@ -263,10 +263,10 @@ if scelta_menu == "SCHEDULE MACH":
         {"WEEK": "WEEK 1", "DATE": "JUL 18", "TIME": "3PM", "MATCHUPS": "NRG • HTTA • POTR • ARES"},
         {"WEEK": "WEEK 2", "DATE": "JUL 25", "TIME": "3PM", "MATCHUPS": "NRG • ARES • GFY • SV"},
         {"WEEK": "WEEK 3", "DATE": "AUG 01", "TIME": "3PM", "MATCHUPS": "NRG • HTTA • GFY • Mafia"},
-        {"WEEK": "WEEK 4", "DATE": "AUG 08", "TIME": "3PM", "MATCHUPS": "HTTA • POTR • GFY • SV"},
-        {"WEEK": "WEEK 5", "DATE": "AUG 15", "TIME": "3PM", "MATCHUPS": "HTTA • POTR • ARES • Mafia"},
-        {"WEEK": "WEEK 6", "DATE": "AUG 22", "TIME": "3PM", "MATCHUPS": "NRG • GFY • SV • Mafia"},
-        {"WEEK": "WEEK 7", "DATE": "AUG 29", "TIME": "3PM", "MATCHUPS": "POTR • ARES • SV • Mafia"},
+        {"WEEK": "WEEK 4", "DATE": "AUG 08", "TIME": "3PM", "MATCHUPS": "HTTA • POTR • ARES • NRG"},
+        {"WEEK": "WEEK 5", "DATE": "AUG 15", "TIME": "3PM", "MATCHUPS": "HTTA • POTR • GFY • SV"},
+        {"WEEK": "WEEK 6", "DATE": "AUG 22", "TIME": "3PM", "MATCHUPS": "NRG • GFY • SV • HTTA"},
+        {"WEEK": "WEEK 7", "DATE": "AUG 29", "TIME": "3PM", "MATCHUPS": "POTR • ARES • SV • GFY"},
     ]
 
     from datetime import datetime, timezone, timedelta
