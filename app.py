@@ -573,8 +573,13 @@ elif scelta_menu == "PERSONAL STATS":
         )
         selected_d9_val = rounds_config[selected_round_label]
         
+        # Se cambi round, aggiorniamo il round. Se il giocatore salvato in D21 non esiste nella nuova lista, 
+        # aggiorniamo D21 sul foglio con il primo giocatore disponibile della nuova lista.
         if str(selected_d9_val).strip().lower() != str(current_d9_val).strip().lower():
             scrivi_cella_per_gid(GID_PERSONAL_STATS, "D9", selected_d9_val)
+            if extracted_players and extracted_players[0] != "No players available":
+                if current_d21_val not in extracted_players:
+                    scrivi_cella_per_gid(GID_PERSONAL_STATS, "D21", extracted_players[0])
             st.rerun()
 
     with col2:
