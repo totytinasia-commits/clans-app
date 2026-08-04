@@ -575,7 +575,7 @@ elif scelta_menu == "PERSONAL STATS":
         
         if str(selected_d9_val).strip().lower() != str(current_d9_val).strip().lower():
             scrivi_cella_per_gid(GID_PERSONAL_STATS, "D9", selected_d9_val)
-            time.sleep(0.4)
+            st.rerun()
 
     with col2:
         player_index = 0
@@ -586,7 +586,7 @@ elif scelta_menu == "PERSONAL STATS":
         
         if str(selected_d21_val).strip().lower() != str(current_d21_val).strip().lower():
             scrivi_cella_per_gid(GID_PERSONAL_STATS, "D21", selected_d21_val)
-            time.sleep(0.4)
+            st.rerun()
 
     with st.spinner("Updating data..."):
         time.sleep(0.2)
