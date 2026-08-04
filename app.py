@@ -262,7 +262,7 @@ if scelta_menu == "SCHEDULE MACH":
     schedule_data = [
         {"WEEK": "WEEK 1", "DATE": "JUL 18", "TIME": "3PM", "MATCHUPS": "NRG • HTTA • POTR • ARES"},
         {"WEEK": "WEEK 2", "DATE": "JUL 25", "TIME": "3PM", "MATCHUPS": "NRG • ARES • GFY • SV"},
-        {"WEEK": "WEEK 3", "DATE": "AUG 01", "TIME": "3PM", "MATCHUPS": "NRG • HTTA • GFY • Mafia"},
+        {"WEEK": "WEEK 3", "DATE": "AUG 01", "TIME": "3PM", "MATCHUPS": "CANCELLED"},
         {"WEEK": "WEEK 4", "DATE": "AUG 08", "TIME": "3PM", "MATCHUPS": "HTTA • POTR • ARES • NRG"},
         {"WEEK": "WEEK 5", "DATE": "AUG 15", "TIME": "3PM", "MATCHUPS": "HTTA • POTR • GFY • SV"},
         {"WEEK": "WEEK 6", "DATE": "AUG 22", "TIME": "3PM", "MATCHUPS": "NRG • GFY • SV • HTTA"},
