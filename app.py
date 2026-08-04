@@ -515,7 +515,7 @@ elif scelta_menu == "PERSONAL STATS":
         "ALL": "ALL",
         "Round 1": 1,
         "Round 2": 2,
-        "Round 3": 3,
+       # "Round 3": 3,
         "Round 4": 4,
         "Round 5": 5,
         "Round 6": 6,
